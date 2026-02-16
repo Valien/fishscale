@@ -46,6 +46,45 @@ func TestSeedSpecies(t *testing.T) {
 	t.Logf("seeded %d species", count)
 }
 
+func TestConnectionPoolLimits(t *testing.T) {
+	dir := t.TempDir()
+	db, err := Open(filepath.Join(dir, "test.db"))
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+	defer db.Close()
+
+	stats := db.Stats()
+	if stats.MaxOpenConnections != 2 {
+		t.Errorf("expected MaxOpenConnections=2, got %d", stats.MaxOpenConnections)
+	}
+}
+
+func TestIndexesExist(t *testing.T) {
+	dir := t.TempDir()
+	db, err := Open(filepath.Join(dir, "test.db"))
+	if err != nil {
+		t.Fatalf("Open failed: %v", err)
+	}
+	defer db.Close()
+
+	indexes := []string{
+		"idx_catches_user_id",
+		"idx_catches_caught_at",
+		"idx_catches_species_id",
+		"idx_catches_trip_id",
+		"idx_photos_catch_id",
+		"idx_trips_user_id",
+	}
+	for _, idx := range indexes {
+		var name string
+		err := db.Get(&name, "SELECT name FROM sqlite_master WHERE type='index' AND name=?", idx)
+		if err != nil {
+			t.Errorf("index %q not found: %v", idx, err)
+		}
+	}
+}
+
 func TestOpenCreatesDirectory(t *testing.T) {
 	dir := t.TempDir()
 	nested := filepath.Join(dir, "a", "b", "c")
