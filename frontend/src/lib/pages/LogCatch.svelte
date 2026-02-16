@@ -18,7 +18,7 @@
   let photoInput: HTMLInputElement;
 
   let form = $state({
-    caught_at: new Date().toISOString().slice(0, 16),
+    caught_at: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
     latitude: null as number | null,
     longitude: null as number | null,
     location_name: '',
