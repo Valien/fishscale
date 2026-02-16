@@ -92,6 +92,20 @@ func (h *TripHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	for _, check := range []struct {
+		name string
+		val  string
+		max  int
+	}{
+		{"name", req.Name, maxShortFieldLen},
+		{"notes", req.Notes, maxNotesLen},
+	} {
+		if err := validateStringLen(check.name, check.val, check.max); err != nil {
+			jsonError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+
 	startedAt := time.Now()
 	if req.StartedAt != "" {
 		var err error
@@ -153,6 +167,20 @@ func (h *TripHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonError(w, http.StatusBadRequest, "invalid JSON")
 		return
+	}
+
+	for _, check := range []struct {
+		name string
+		val  string
+		max  int
+	}{
+		{"name", req.Name, maxShortFieldLen},
+		{"notes", req.Notes, maxNotesLen},
+	} {
+		if err := validateStringLen(check.name, check.val, check.max); err != nil {
+			jsonError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 	}
 
 	var endedAt *time.Time

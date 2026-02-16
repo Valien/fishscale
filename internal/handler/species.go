@@ -69,6 +69,10 @@ func (h *SpeciesHandler) Create(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "name is required")
 		return
 	}
+	if err := validateStringLen("name", req.Name, maxShortFieldLen); err != nil {
+		jsonError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	result, err := h.db.ExecContext(r.Context(), "INSERT INTO species (name, category) VALUES (?, ?)", req.Name, req.Category)
 	if err != nil {

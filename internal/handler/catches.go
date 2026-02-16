@@ -101,6 +101,11 @@ func (h *CatchHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := validateCatchRequest(&req); err != nil {
+		jsonError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	result, err := h.db.ExecContext(r.Context(), `INSERT INTO catches (
 		user_id, trip_id, species_id, caught_at, latitude, longitude, location_name,
 		length_in, weight_lb, kept, bait_or_lure, rod_setup, line_info, hook_size,
@@ -163,6 +168,11 @@ func (h *CatchHandler) Update(w http.ResponseWriter, r *http.Request) {
 	caughtAt, err := time.Parse(time.RFC3339, req.CaughtAt)
 	if err != nil {
 		jsonError(w, http.StatusBadRequest, "invalid caught_at format")
+		return
+	}
+
+	if err := validateCatchRequest(&req); err != nil {
+		jsonError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
