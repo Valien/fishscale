@@ -1,20 +1,34 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
+	"net/http"
 
 	"github.com/allen/fishscale/internal/config"
+	"github.com/allen/fishscale/internal/database"
+	"github.com/allen/fishscale/internal/server"
+	"github.com/allen/fishscale/internal/storage"
 )
 
 func main() {
 	cfg := config.Load()
 
-	if cfg.LogLevel == "debug" {
-		fmt.Fprintf(os.Stderr, "config: %+v\n", cfg)
+	db, err := database.Open(cfg.DBPath)
+	if err != nil {
+		log.Fatalf("failed to open database: %v", err)
 	}
+	defer db.Close()
 
-	log.Println("fishscale starting...")
-	// Server setup will go here in later tasks.
+	store := storage.NewLocalStore(cfg.PhotoDir)
+
+	router := server.NewRouter(cfg, db, store)
+
+	if cfg.DevMode {
+		log.Println("DEV MODE: listening on http://localhost:8080")
+		log.Fatal(http.ListenAndServe(":8080", router))
+	} else {
+		// tsnet startup will be added in Task 12
+		log.Println("fishscale starting on :8080 (tsnet not yet configured)")
+		log.Fatal(http.ListenAndServe(":8080", router))
+	}
 }
