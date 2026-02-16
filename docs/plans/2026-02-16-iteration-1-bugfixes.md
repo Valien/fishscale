@@ -18,93 +18,57 @@ Fixes three related iOS Safari bugs with the species dropdown, a map re-initiali
 - Only recovery is a full page refresh
 - Backend does receive the catch (save works), but the UI is stuck
 
-**Root Cause:**
-The custom dropdown uses `onclick` handlers on `<button>` elements inside an absolutely-positioned container. On iOS Safari:
-1. `onclick` on dynamically-shown elements inside absolute-positioned containers is unreliable — iOS doesn't always fire click events on non-anchor/non-input elements
-2. The `$effect` that filters species re-runs when `speciesQuery` changes, which can re-trigger `showSpeciesDropdown = true` immediately after `selectSpecies` sets it to `false`, causing a race condition
-3. No way to dismiss the dropdown by tapping outside it (no backdrop), so once stuck the user is trapped
+**Root Causes (discovered across multiple iterations):**
+1. `onclick` on dynamically-shown elements inside absolute-positioned containers is unreliable on iOS Safari
+2. The `$effect` that filters species re-runs when `speciesQuery` changes, which can re-trigger `showSpeciesDropdown = true` immediately after `selectSpecies` sets it to `false` (race condition)
+3. First attempted fix (backdrop overlay with `onpointerup`) failed: a `position: fixed` backdrop inside a `position: relative` container creates broken z-index stacking on Safari — the backdrop blocks the entire viewport (including Save/Cancel buttons) while the dropdown items' `onpointerup` events don't fire reliably through the stacking context boundary
 
-**Fix (in `LogCatch.svelte`):**
+**Fix applied (in `LogCatch.svelte`):**
 
-### Step 1: Add a backdrop overlay to dismiss the dropdown
-When `showSpeciesDropdown` is true, render an invisible full-screen `<div>` behind the dropdown that closes it on touch/click. This gives users a way out and prevents the trapped state.
+The working solution uses **`onmousedown`** on dropdown items and **`onblur`** with a delay on the input. No backdrop overlay.
+
+### Why `onmousedown` + `onblur`:
+- `onmousedown` fires **before** `blur` on the input, so the selection registers before the dropdown is dismissed
+- On iOS Safari, `mousedown` fires via the touch-to-mouse compatibility layer on `<button>` elements
+- `onblur` on the input closes the dropdown when the user taps anywhere else (input loses focus)
+- The 150ms delay in `dismissDropdown()` ensures `onmousedown` on a dropdown item fires before the blur hides the dropdown
+
+### What was removed:
+- **Backdrop div** — caused z-index stacking issues on Safari, blocked all UI behind it
+- **`onpointerup`** — unreliable on Safari through stacking context boundaries
+- **`document.activeElement.blur()` in `selectSpecies`** — unnecessary, the input blur happens naturally
+
+### What was kept:
+- **`justSelected` flag** — prevents the `$effect` race condition that reopens the dropdown after selection
+- **`onfocus` handler** — reopens dropdown if input is re-focused with text in it
+
+```typescript
+function selectSpecies(s: any) {
+  justSelected = true;
+  form.species_id = s.id;
+  form.species_name = s.name;
+  speciesQuery = s.name;
+  showSpeciesDropdown = false;
+}
+
+function dismissDropdown() {
+  // Delay so mousedown on a dropdown item fires before we hide it
+  setTimeout(() => { showSpeciesDropdown = false; }, 150);
+}
+```
 
 ```svelte
+<input ... onblur={dismissDropdown} />
 {#if showSpeciesDropdown}
-  <!-- Invisible backdrop to dismiss dropdown on outside tap -->
-  <div class="dropdown-backdrop" onclick={() => { showSpeciesDropdown = false; }}></div>
   <div class="dropdown">
-    ...
-  </div>
-{/if}
+    {#each filteredSpecies as s}
+      <button class="dropdown-item" onmousedown={() => selectSpecies(s)}>
 ```
 
-```css
-.dropdown-backdrop {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  z-index: 9; /* below dropdown z-index of 10 */
-}
-```
-
-### Step 2: Use onpointerup instead of onclick for dropdown items
-iOS Safari reliably fires pointer events on all elements. Replace `onclick` with `onpointerup` on each dropdown item.
-
-```svelte
-<button class="dropdown-item" onpointerup={() => selectSpecies(s)}>
-```
-
-### Step 3: Break the $effect race condition
-The species filter `$effect` currently sets `showSpeciesDropdown` based on `speciesQuery.length > 0`. When `selectSpecies` sets `speciesQuery = s.name`, the effect re-runs and reopens the dropdown because `speciesQuery.length > 0`.
-
-Fix: track whether a selection was just made. Add a `justSelected` flag that the effect checks:
-
-```typescript
-let justSelected = $state(false);
-
-function selectSpecies(s: any) {
-  justSelected = true;
-  form.species_id = s.id;
-  form.species_name = s.name;
-  speciesQuery = s.name;
-  showSpeciesDropdown = false;
-}
-
-// Filter species on query change
-$effect(() => {
-  if (justSelected) {
-    justSelected = false;
-    return;
-  }
-  if (speciesQuery.length > 0) {
-    filteredSpecies = speciesList.filter(s =>
-      s.name.toLowerCase().includes(speciesQuery.toLowerCase())
-    ).slice(0, 8);
-    showSpeciesDropdown = filteredSpecies.length > 0;
-  } else {
-    showSpeciesDropdown = false;
-    form.species_id = null;
-    form.species_name = '';
-  }
-});
-```
-
-### Step 4: Blur the input on selection
-After selecting a species, blur the input to dismiss the iOS keyboard and prevent further focus-related issues:
-
-```typescript
-function selectSpecies(s: any) {
-  justSelected = true;
-  form.species_id = s.id;
-  form.species_name = s.name;
-  speciesQuery = s.name;
-  showSpeciesDropdown = false;
-  // Blur the input to dismiss iOS keyboard
-  if (document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur();
-  }
-}
-```
+**Approaches that failed:**
+1. `onclick` — doesn't fire on iOS Safari for elements in absolute-positioned containers
+2. `onpointerup` + backdrop — backdrop's `position: fixed` inside `position: relative` parent breaks z-index stacking on Safari, blocking entire UI
+3. `onpointerup` without backdrop — event doesn't fire reliably through stacking contexts on Safari
 
 **Files changed:** `frontend/src/lib/pages/LogCatch.svelte`
 

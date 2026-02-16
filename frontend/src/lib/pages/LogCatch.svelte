@@ -96,9 +96,11 @@
     form.species_name = s.name;
     speciesQuery = s.name;
     showSpeciesDropdown = false;
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
+  }
+
+  function dismissDropdown() {
+    // Delay so mousedown on a dropdown item fires before we hide it
+    setTimeout(() => { showSpeciesDropdown = false; }, 150);
   }
 
   function handlePhotoSelect(e: Event) {
@@ -189,12 +191,12 @@
         placeholder="Search species..."
         bind:value={speciesQuery}
         onfocus={() => { if (speciesQuery.length > 0 && !justSelected) showSpeciesDropdown = true; }}
+        onblur={dismissDropdown}
       />
       {#if showSpeciesDropdown}
-        <div class="dropdown-backdrop" onpointerup={() => { showSpeciesDropdown = false; }}></div>
         <div class="dropdown">
           {#each filteredSpecies as s}
-            <button class="dropdown-item" onpointerup={() => selectSpecies(s)}>
+            <button class="dropdown-item" onmousedown={() => selectSpecies(s)}>
               {s.name}
               <span class="chip">{s.category}</span>
             </button>
@@ -330,15 +332,6 @@
 
   .species-field {
     position: relative;
-  }
-
-  .dropdown-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 9;
   }
 
   .dropdown {
