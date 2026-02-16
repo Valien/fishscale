@@ -218,16 +218,14 @@ Bottom tab bar on mobile, sidebar on desktop. Four main views plus the primary a
 
 The most important screen in the app. Optimized for speed on the water.
 
-**Step 1 (auto-filled, shown immediately):**
-- Camera/file picker opens first (photo is the entry point)
+**Quick fields (shown immediately):**
+- Date/time set to now, editable
 - GPS location auto-detected, tap to adjust pin on map
-- Time set to now, editable
-- Weather auto-fetched from Open-Meteo based on GPS coordinates, tap to edit
-
-**Step 2 (quick fields, minimal taps):**
-- Species: searchable autocomplete from species list
+- Species: searchable autocomplete from species list (custom touch-friendly dropdown, not native datalist)
 - Bait/Lure: autocomplete from user's history
 - Kept / Released: toggle
+- Photo: optional camera/file picker button within the form (uses `accept="image/*" capture="environment"` for native camera on mobile)
+- Weather auto-fetched from Open-Meteo based on GPS coordinates, shown as preview chip
 - **[Save]** and **[+ More Detail]** buttons
 
 **"+ More Detail" expands (all optional):**
@@ -238,15 +236,18 @@ The most important screen in the app. Optimized for speed on the water.
 - Notes
 
 **Key UX decisions:**
-- Photo first. Camera is the first thing you see.
+- Photo is optional, not the entry point. Camera/file picker is a button in the form, not the first thing shown. This avoids blocking quick logging when you just want to record a catch fast.
 - Auto-fill aggressively. GPS, time, and weather are pre-populated.
 - Autocomplete from history. Bait/lure and gear fields learn from previous entries.
 - Two-tier form. Quick save needs only species + bait + kept/released. Everything else is behind "More Detail."
-- Save is always visible. You can save with just a photo and auto-filled data if in a rush.
+- Save is always visible. You can save with just auto-filled data if in a rush.
+- Species dropdown must work on iOS Safari. Uses touch-friendly events (touchend), a backdrop overlay for dismissal, and avoids focus traps that freeze the page.
 
 ### Map View
 
 Full-screen MapLibre GL map showing catch pins. Pins color-coded by species or sized by weight (user toggle). Tapping a pin shows a summary card with photo thumbnail, species, date, and link to full catch detail.
+
+The map instance is preserved across tab switches so zoom/pan position is remembered. On first load, the map fits to catch bounds if catches exist, otherwise centers on the user's GPS position. The map is never hardcoded to a specific location.
 
 Filter panel slides in: date range, species, bait, trip.
 
@@ -266,6 +267,7 @@ Chronological list, most recent first. Each card shows thumbnail photo, species,
 
 - Theme: Light / Dark / System
 - Units: Imperial / Metric
+- Species filter: All / Freshwater / Saltwater (controls which species appear in the species autocomplete when logging a catch; default: All)
 - User profile display (from Tailscale identity, read-only)
 
 ## Docker & Deployment
@@ -280,7 +282,7 @@ COPY frontend/ .
 RUN npm ci && npm run build
 
 # Stage 2: Build Go binary
-FROM golang:1.23-alpine AS backend
+FROM golang:1.25-alpine AS backend
 WORKDIR /app
 COPY go.* ./
 RUN go mod download

@@ -28,9 +28,10 @@
 </script>
 
 <div class="app">
-  {#if activePage === 'map'}
-    <MapView />
-  {:else if activePage === 'log'}
+  <div class:hidden={activePage !== 'map'}>
+    <MapView visible={activePage === 'map'} />
+  </div>
+  {#if activePage === 'log'}
     <CatchLog onEdit={handleEditCatch} />
   {:else if activePage === 'add'}
     <LogCatch onDone={handleCatchDone} />
@@ -42,3 +43,9 @@
 
   <BottomNav bind:activePage onNavigate={navigate} />
 </div>
+
+<style>
+  .hidden {
+    display: none;
+  }
+</style>

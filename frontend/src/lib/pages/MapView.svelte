@@ -4,8 +4,11 @@
   import maplibregl from 'maplibre-gl';
   import 'maplibre-gl/dist/maplibre-gl.css';
 
+  let { visible = true }: { visible?: boolean } = $props();
+
   let mapContainer: HTMLDivElement;
   let map: maplibregl.Map | null = null;
+  let initialFitDone = false;
 
   onMount(() => {
     loadCatches();
@@ -30,15 +33,40 @@
           },
         ],
       },
-      center: [-96.7970, 32.7767],
-      zoom: 5,
+      center: [0, 0],
+      zoom: 2,
     });
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
+    // Center on user GPS if no catches to fit
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (map && !initialFitDone) {
+            map.flyTo({
+              center: [pos.coords.longitude, pos.coords.latitude],
+              zoom: 10,
+            });
+            initialFitDone = true;
+          }
+        },
+        () => {},
+        { enableHighAccuracy: true }
+      );
+    }
+
     return () => {
       map?.remove();
     };
+  });
+
+  // Resize map when tab becomes visible
+  $effect(() => {
+    if (visible && map) {
+      // Small delay to let CSS display:none be removed first
+      setTimeout(() => map?.resize(), 0);
+    }
   });
 
   // Update markers when catches change
@@ -86,8 +114,9 @@
       hasBounds = true;
     }
 
-    if (hasBounds) {
+    if (hasBounds && !initialFitDone) {
       map!.fitBounds(bounds, { padding: 50, maxZoom: 12 });
+      initialFitDone = true;
     }
   });
 </script>

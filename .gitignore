@@ -2,5 +2,6 @@
 *.db
 /data
 .env
+/fishscale
 frontend/node_modules
 frontend/dist

@@ -8,10 +8,14 @@
   let speciesQuery = $state('');
   let filteredSpecies = $state<any[]>([]);
   let showSpeciesDropdown = $state(false);
+  let justSelected = $state(false);
 
   let showMoreDetail = $state(false);
   let saving = $state(false);
   let error = $state('');
+
+  let photoFiles = $state<File[]>([]);
+  let photoInput: HTMLInputElement;
 
   let form = $state({
     caught_at: new Date().toISOString().slice(0, 16),
@@ -45,6 +49,10 @@
 
   // Filter species on query change
   $effect(() => {
+    if (justSelected) {
+      justSelected = false;
+      return;
+    }
     if (speciesQuery.length > 0) {
       filteredSpecies = speciesList.filter(s =>
         s.name.toLowerCase().includes(speciesQuery.toLowerCase())
@@ -52,6 +60,8 @@
       showSpeciesDropdown = filteredSpecies.length > 0;
     } else {
       showSpeciesDropdown = false;
+      form.species_id = null;
+      form.species_name = '';
     }
   });
 
@@ -81,17 +91,33 @@
   });
 
   function selectSpecies(s: any) {
+    justSelected = true;
     form.species_id = s.id;
     form.species_name = s.name;
     speciesQuery = s.name;
     showSpeciesDropdown = false;
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }
+
+  function handlePhotoSelect(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (input.files) {
+      photoFiles = [...photoFiles, ...Array.from(input.files)];
+    }
+    input.value = '';
+  }
+
+  function removePhoto(index: number) {
+    photoFiles = photoFiles.filter((_, i) => i !== index);
   }
 
   async function save() {
     saving = true;
     error = '';
     try {
-      await api.catches.create({
+      const created = await api.catches.create({
         caught_at: new Date(form.caught_at).toISOString(),
         latitude: form.latitude,
         longitude: form.longitude,
@@ -114,6 +140,15 @@
         pressure_mb: form.pressure_mb,
         humidity_pct: form.humidity_pct,
       });
+
+      if (photoFiles.length > 0 && created?.id) {
+        const formData = new FormData();
+        for (const file of photoFiles) {
+          formData.append('photos', file);
+        }
+        await api.catches.addPhotos(created.id, formData);
+      }
+
       await loadCatches();
       onDone();
     } catch (e: any) {
@@ -153,12 +188,13 @@
         type="text"
         placeholder="Search species..."
         bind:value={speciesQuery}
-        onfocus={() => { if (speciesQuery.length > 0) showSpeciesDropdown = true; }}
+        onfocus={() => { if (speciesQuery.length > 0 && !justSelected) showSpeciesDropdown = true; }}
       />
       {#if showSpeciesDropdown}
+        <div class="dropdown-backdrop" onpointerup={() => { showSpeciesDropdown = false; }}></div>
         <div class="dropdown">
           {#each filteredSpecies as s}
-            <button class="dropdown-item" onclick={() => selectSpecies(s)}>
+            <button class="dropdown-item" onpointerup={() => selectSpecies(s)}>
               {s.name}
               <span class="chip">{s.category}</span>
             </button>
@@ -170,6 +206,32 @@
     <div class="form-group">
       <label>Bait / Lure</label>
       <input type="text" placeholder="e.g. Texas Rig, Senko" bind:value={form.bait_or_lure} />
+    </div>
+
+    <div class="form-group">
+      <label>Photo</label>
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        multiple
+        bind:this={photoInput}
+        onchange={handlePhotoSelect}
+        style="display:none"
+      />
+      <button class="btn btn-outline btn-block" type="button" onpointerup={() => photoInput.click()}>
+        {photoFiles.length > 0 ? `${photoFiles.length} photo(s) selected` : 'Add Photo'}
+      </button>
+      {#if photoFiles.length > 0}
+        <div class="photo-previews">
+          {#each photoFiles as file, i}
+            <div class="photo-thumb">
+              <img src={URL.createObjectURL(file)} alt="Preview" />
+              <button class="photo-remove" onpointerup={() => removePhoto(i)}>x</button>
+            </div>
+          {/each}
+        </div>
+      {/if}
     </div>
 
     <div class="form-group">
@@ -270,6 +332,15 @@
     position: relative;
   }
 
+  .dropdown-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9;
+  }
+
   .dropdown {
     position: absolute;
     top: 100%;
@@ -300,6 +371,42 @@
 
   .dropdown-item:hover {
     background: var(--bg-secondary);
+  }
+
+  .photo-previews {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    overflow-x: auto;
+  }
+
+  .photo-thumb {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .photo-thumb img {
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 8px;
+  }
+
+  .photo-remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--danger);
+    color: white;
+    border: none;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .weather-preview {
