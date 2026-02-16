@@ -4,7 +4,7 @@
   const tabs = [
     { id: 'map', label: 'Map', icon: '🗺' },
     { id: 'log', label: 'Log', icon: '📋' },
-    { id: 'add', label: '', icon: '+' },
+    { id: 'add', label: '', icon: '🐟' },
     { id: 'stats', label: 'Stats', icon: '📊' },
     { id: 'settings', label: 'Settings', icon: '⚙' },
   ];

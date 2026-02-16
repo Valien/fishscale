@@ -45,6 +45,13 @@
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
+    const geolocate = new maplibregl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: false,
+      showUserLocation: true,
+    });
+    map.addControl(geolocate, 'top-right');
+
     // GPS fallback: only used if catches haven't positioned the map first
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
