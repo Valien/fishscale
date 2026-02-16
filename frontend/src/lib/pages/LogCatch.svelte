@@ -9,7 +9,7 @@
   let speciesQuery = $state('');
   let filteredSpecies = $state<any[]>([]);
   let showSpeciesDropdown = $state(false);
-  let justSelected = $state(false);
+  let justSelected = false;
 
   let showMoreDetail = $state(false);
   let saving = $state(false);

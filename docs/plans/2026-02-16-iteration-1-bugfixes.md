@@ -23,6 +23,7 @@ Fixes three related iOS Safari bugs with the species dropdown, a map re-initiali
 2. The `$effect` that filters species re-runs when `speciesQuery` changes, which can re-trigger `showSpeciesDropdown = true` immediately after `selectSpecies` sets it to `false` (race condition)
 3. First attempted fix (backdrop overlay with `onpointerup`) failed: a `position: fixed` backdrop inside a `position: relative` container creates broken z-index stacking on Safari -- the backdrop blocks the entire viewport (including Save/Cancel buttons) while the dropdown items' `onpointerup` events don't fire reliably through the stacking context boundary
 4. Second attempted fix (`onmousedown` + `onblur` with 150ms delay) failed: on iOS Safari, `mousedown` does NOT fire when the finger touches down. All mouse compatibility events (`mouseover`, `mousemove`, `mousedown`, `mouseup`, `click`) fire **together after the finger lifts**. This means `mousedown` and `blur` race unpredictably, and the 150ms delay is not reliable.
+5. **Svelte 5 `$effect` re-trigger:** `justSelected` was declared as `$state(false)`. The `$effect` reads `justSelected`, so it tracks it as a dependency. When the effect sets `justSelected = false`, this triggers the effect to re-run. On the second run, `justSelected` is false so the effect proceeds to filter species and sets `showSpeciesDropdown = true`, reopening the dropdown. Fix: declare `justSelected` as a plain `let` (not `$state`) so the effect doesn't track it.
 
 **Fix applied (in `LogCatch.svelte`):**
 
@@ -86,6 +87,7 @@ function cancelDismiss() {
 2. `onpointerup` + backdrop -- backdrop's `position: fixed` inside `position: relative` parent breaks z-index stacking on Safari, blocking entire UI
 3. `onpointerup` without backdrop -- event doesn't fire reliably through stacking contexts on Safari
 4. `onmousedown` + `onblur` with 150ms delay -- on iOS Safari, `mousedown` fires after finger lift (not on press), racing with `blur`. The delay is not reliable.
+5. `ontouchend` + `onmousedown` with `justSelected` as `$state` -- touch events fired correctly, but `justSelected` being reactive caused the `$effect` to re-trigger when it was set to `false`, immediately reopening the dropdown.
 
 **Key insight from Apple's documentation:** On iOS Safari, when a user taps a clickable element, mouse compatibility events arrive in this order: `mouseover, mousemove, mousedown, mouseup, click` -- but they **all fire together after the user lifts their finger**. Touch events (`touchstart`, `touchend`) fire at the actual moment of interaction and are the only reliable way to handle taps.
 
@@ -113,8 +115,11 @@ Map starts zooming to GPS location then enters infinite upward scroll on both de
 ### HTML & Global CSS: Prevent Safari body overscroll
 - `viewport-fit=cover` on the viewport meta tag
 - `html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }` prevents Safari's elastic scroll
-- `.app { height: 100%; overflow-y: auto; }` makes the app container the scrollable element instead of the body
+- `#app { height: 100%; }` ensures the Svelte mount point passes height to children
+- `.app { height: 100%; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }` makes the app container the scrollable element instead of the body. `overscroll-behavior: contain` prevents scroll chaining. `-webkit-overflow-scrolling: touch` enables momentum scrolling on iOS.
 - `.map-page { overflow: hidden; overscroll-behavior: none; }` prevents scroll propagation from the map
+
+**Note:** The full `html > body > #app > .app` height chain must be explicit (`height: 100%` at each level) for the `.app` container to be scrollable. Without `#app { height: 100% }`, the `.app` div's `height: 100%` resolves to auto and pages cannot scroll.
 
 ### App.svelte: CSS visibility instead of conditional rendering
 Always render MapView, hide with `display: none` via `.hidden` class. Pass `visible` prop so map can resize when shown.
