@@ -1,0 +1,20 @@
+services:
+  fishscale:
+    build: .
+    container_name: fishscale
+    restart: unless-stopped
+    volumes:
+      - fishscale-data:/data
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_HOSTNAME=${TS_HOSTNAME:-fishscale}
+      - TS_STATE_DIR=/data/tsnet-state
+      - FISHSCALE_DB_PATH=/data/fish.db
+      - FISHSCALE_PHOTO_DIR=/data/photos
+      - FISHSCALE_LOG_LEVEL=${FISHSCALE_LOG_LEVEL:-info}
+
+volumes:
+  fishscale-data:
