@@ -68,11 +68,12 @@ type Photo struct {
 }
 
 type UserSettings struct {
-	ID        int64     `db:"id" json:"id"`
-	UserID    int64     `db:"user_id" json:"user_id"`
-	Theme     string    `db:"theme" json:"theme"`
-	Units     string    `db:"units" json:"units"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
+	ID            int64     `db:"id" json:"id"`
+	UserID        int64     `db:"user_id" json:"user_id"`
+	Theme         string    `db:"theme" json:"theme"`
+	Units         string    `db:"units" json:"units"`
+	SpeciesFilter string    `db:"species_filter" json:"species_filter"`
+	UpdatedAt     time.Time `db:"updated_at" json:"updated_at"`
 }
 
 type CreateCatchRequest struct {

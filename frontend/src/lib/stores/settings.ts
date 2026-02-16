@@ -4,14 +4,15 @@ import { api } from '../api';
 interface Settings {
   theme: string;
   units: string;
+  species_filter: string;
 }
 
-export const settings = writable<Settings>({ theme: 'system', units: 'imperial' });
+export const settings = writable<Settings>({ theme: 'system', units: 'imperial', species_filter: 'all' });
 
 export async function loadSettings() {
   try {
     const s = await api.settings.get();
-    settings.set({ theme: s.theme, units: s.units });
+    settings.set({ theme: s.theme, units: s.units, species_filter: s.species_filter || 'all' });
     applyTheme(s.theme);
   } catch {
     applyTheme('system');

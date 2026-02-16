@@ -10,7 +10,7 @@ A self-hosted fishing tracker. Log catches, view them on a map, track personal b
 - **Statistics dashboard** with species breakdown, personal bests, top baits, and monthly trends
 - **Trip tracking** to group catches by outing
 - **Export** your data as JSON or CSV
-- **44 pre-loaded species** covering freshwater, saltwater, and fly fishing
+- **44 pre-loaded species** covering freshwater and saltwater, with a species filter setting
 - **Light/dark/system theme** with imperial or metric units
 - **Single binary** — Go backend with embedded Svelte frontend, no external services
 - **SQLite database** — zero configuration, WAL mode for performance
@@ -137,7 +137,7 @@ GET    /api/v1/species          List species (?q= for search)
 POST   /api/v1/species          Add custom species
 DELETE /api/v1/photos/:id       Delete a photo
 GET    /api/v1/settings         Get user settings
-PUT    /api/v1/settings         Update settings (theme, units)
+PUT    /api/v1/settings         Update settings (theme, units, species_filter)
 GET    /api/v1/weather          Get weather (?lat=&lon=)
 GET    /api/v1/stats            Get statistics
 GET    /api/v1/export           Export data (?format=json|csv)

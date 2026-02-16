@@ -66,11 +66,12 @@ func migrate(db *sqlx.DB) error {
 	);
 
 	CREATE TABLE IF NOT EXISTS user_settings (
-		id         INTEGER PRIMARY KEY AUTOINCREMENT,
-		user_id    INTEGER NOT NULL UNIQUE REFERENCES users(id),
-		theme      TEXT    NOT NULL DEFAULT 'system',
-		units      TEXT    NOT NULL DEFAULT 'imperial',
-		updated_at DATETIME NOT NULL DEFAULT (datetime('now'))
+		id             INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id        INTEGER NOT NULL UNIQUE REFERENCES users(id),
+		theme          TEXT    NOT NULL DEFAULT 'system',
+		units          TEXT    NOT NULL DEFAULT 'imperial',
+		species_filter TEXT    NOT NULL DEFAULT 'all',
+		updated_at     DATETIME NOT NULL DEFAULT (datetime('now'))
 	);
 
 	CREATE INDEX IF NOT EXISTS idx_catches_user_id    ON catches(user_id);
@@ -82,6 +83,9 @@ func migrate(db *sqlx.DB) error {
 	if _, err := db.Exec(schema); err != nil {
 		return err
 	}
+
+	// Add species_filter column to existing user_settings tables
+	db.Exec("ALTER TABLE user_settings ADD COLUMN species_filter TEXT NOT NULL DEFAULT 'all'")
 
 	return seedSpecies(db)
 }

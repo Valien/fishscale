@@ -1,6 +1,7 @@
 <script lang="ts">
   import { api } from '../api';
   import { loadCatches } from '../stores/catches';
+  import { settings } from '../stores/settings';
 
   let { onDone }: { onDone: () => void } = $props();
 
@@ -47,16 +48,19 @@
     api.species.list().then(s => { speciesList = s; });
   });
 
-  // Filter species on query change
+  // Filter species on query change, respecting species_filter setting
   $effect(() => {
     if (justSelected) {
       justSelected = false;
       return;
     }
+    const filter = $settings.species_filter || 'all';
     if (speciesQuery.length > 0) {
-      filteredSpecies = speciesList.filter(s =>
-        s.name.toLowerCase().includes(speciesQuery.toLowerCase())
-      ).slice(0, 8);
+      filteredSpecies = speciesList.filter(s => {
+        const matchesQuery = s.name.toLowerCase().includes(speciesQuery.toLowerCase());
+        const matchesCategory = filter === 'all' || s.category === filter;
+        return matchesQuery && matchesCategory;
+      }).slice(0, 8);
       showSpeciesDropdown = filteredSpecies.length > 0;
     } else {
       showSpeciesDropdown = false;
