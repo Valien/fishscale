@@ -247,7 +247,7 @@ The most important screen in the app. Optimized for speed on the water.
 
 Full-screen MapLibre GL map showing catch pins. Pins color-coded by species or sized by weight (user toggle). Tapping a pin shows a summary card with photo thumbnail, species, date, and link to full catch detail.
 
-The map instance is preserved across tab switches so zoom/pan position is remembered. On first load, the map fits to catch bounds if catches exist, otherwise centers on the user's GPS position. The map is never hardcoded to a specific location.
+The map instance is preserved across tab switches so zoom/pan position is remembered. On first load, the map shows a continental US view, then instantly fits to catch bounds if catches exist. A locate-me button (MapLibre GeolocateControl) in the top-right lets the user center on their GPS position on demand. No automatic GPS animations on load — positioning is either instant (catch bounds) or user-initiated (locate button).
 
 Filter panel slides in: date range, species, bait, trip.
 

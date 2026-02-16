@@ -5,7 +5,7 @@ A self-hosted fishing tracker. Log catches, view them on a map, track personal b
 ## Features
 
 - **Catch logging** with GPS coordinates, species, bait/lure, weight, length, and photos
-- **Interactive map** showing all catch locations (MapLibre GL + OpenStreetMap)
+- **Interactive map** showing all catch locations with locate-me button (MapLibre GL + OpenStreetMap)
 - **Automatic weather** fetched from Open-Meteo at time of logging (no API key needed)
 - **Statistics dashboard** with species breakdown, personal bests, top baits, and monthly trends
 - **Trip tracking** to group catches by outing
@@ -49,7 +49,7 @@ Fishscale will be available at `https://fishscale.<your-tailnet>.ts.net`.
 
 ### Prerequisites
 
-- Go 1.23+
+- Go 1.25+
 - Node.js 22+
 
 ### Run locally
