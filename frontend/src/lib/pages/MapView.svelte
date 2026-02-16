@@ -143,10 +143,13 @@
     left: 0;
     right: 0;
     bottom: 64px;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
 
   .map-container {
     width: 100%;
     height: 100%;
+    overflow: hidden;
   }
 </style>

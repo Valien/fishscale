@@ -80,12 +80,17 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, store storage.Store, authMiddlew
 			if path != "/" && !strings.HasSuffix(path, "/") {
 				if f, err := distFS.Open(strings.TrimPrefix(path, "/")); err == nil {
 					f.Close()
+					// Hashed assets can be cached aggressively
+					if strings.HasPrefix(path, "/assets/") {
+						w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+					}
 					fileServer.ServeHTTP(w, r)
 					return
 				}
 			}
 
-			// SPA fallback: serve index.html for all non-file routes
+			// SPA fallback: serve index.html — never cache so deploys take effect immediately
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 			r.URL.Path = "/"
 			fileServer.ServeHTTP(w, r)
 		})

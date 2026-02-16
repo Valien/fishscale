@@ -94,7 +94,8 @@
     }
   });
 
-  function selectSpecies(s: any) {
+  function selectSpecies(s: any, e?: Event) {
+    e?.preventDefault();
     justSelected = true;
     form.species_id = s.id;
     form.species_name = s.name;
@@ -102,9 +103,18 @@
     showSpeciesDropdown = false;
   }
 
+  let dismissTimer: ReturnType<typeof setTimeout> | null = null;
+
   function dismissDropdown() {
-    // Delay so mousedown on a dropdown item fires before we hide it
-    setTimeout(() => { showSpeciesDropdown = false; }, 150);
+    // Delay so touchend/mousedown on a dropdown item fires before we hide it
+    dismissTimer = setTimeout(() => { showSpeciesDropdown = false; }, 200);
+  }
+
+  function cancelDismiss() {
+    if (dismissTimer) {
+      clearTimeout(dismissTimer);
+      dismissTimer = null;
+    }
   }
 
   function handlePhotoSelect(e: Event) {
@@ -198,9 +208,13 @@
         onblur={dismissDropdown}
       />
       {#if showSpeciesDropdown}
-        <div class="dropdown">
+        <div class="dropdown" ontouchstart={cancelDismiss}>
           {#each filteredSpecies as s}
-            <button class="dropdown-item" onmousedown={() => selectSpecies(s)}>
+            <button
+              class="dropdown-item"
+              ontouchend={(e) => selectSpecies(s, e)}
+              onmousedown={() => selectSpecies(s)}
+            >
               {s.name}
               <span class="chip">{s.category}</span>
             </button>
