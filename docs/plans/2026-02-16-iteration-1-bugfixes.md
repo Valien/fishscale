@@ -110,51 +110,32 @@ function selectSpecies(s: any) {
 
 ---
 
-## Bug 4: Map Resets to Texas on Every Tab Switch
+## Bug 4: Map Resets / Infinite Scroll on Safari
 
-**Symptom:**
-Every time the user taps the Map tab, the map briefly shows the hardcoded Texas center (32.7767, -96.7970) at zoom 5, then jumps to fit catch bounds. Annoying flash and loses any manual zoom/pan the user had set.
+**Symptom (original):**
+Every time the user taps the Map tab, the map briefly shows the hardcoded Texas center (32.7767, -96.7970) at zoom 5, then jumps to fit catch bounds.
 
-**Root Cause:**
-The `MapView` component is destroyed and recreated on every tab switch because Svelte's `{#if}` blocks unmount components when the condition is false. Each mount creates a new `maplibregl.Map` with hardcoded center coordinates.
+**Symptom (after initial fix):**
+Map starts zooming to GPS location then enters infinite upward scroll on both desktop and mobile Safari.
 
-**Fix:**
+**Root Causes:**
+1. `MapView` was destroyed/recreated on every tab switch (`{#if}` unmounts components)
+2. Manual `getCurrentPosition` + `flyTo` and catches `fitBounds` fired as competing animations, causing MapLibre's renderer to fight between two targets on Safari
+3. Markers removed via `document.querySelectorAll('.catch-marker').remove()` instead of MapLibre's `marker.remove()` API — bypasses MapLibre's internal state tracking
+4. `loadCatches()` called before map `load` event, causing positioning before tiles ready
 
-### Step 1: Move map to App.svelte with CSS visibility
-Instead of conditionally rendering MapView with `{#if}`, always render it but hide it with CSS (`display: none`) when another tab is active. This keeps the MapLibre instance alive.
+**Fix applied:**
 
-In `App.svelte`:
-```svelte
-<div class="app">
-  <div class:hidden={activePage !== 'map'}>
-    <MapView />
-  </div>
-  {#if activePage === 'log'}
-    <CatchLog onEdit={handleEditCatch} />
-  {:else if activePage === 'add'}
-    <LogCatch onDone={handleCatchDone} />
-  {:else if activePage === 'stats'}
-    <Stats />
-  {:else if activePage === 'settings'}
-    <Settings />
-  {/if}
+### App.svelte: CSS visibility instead of conditional rendering
+Always render MapView, hide with `display: none` via `.hidden` class. Pass `visible` prop so map can resize when shown.
 
-  <BottomNav bind:activePage onNavigate={navigate} />
-</div>
-```
-
-```css
-.hidden { display: none; }
-```
-
-### Step 2: Remove hardcoded Texas center, use GPS or catch bounds
-Change `MapView.svelte` initialization to not use hardcoded coordinates. Instead:
-1. Start with a world-level view (center [0, 0], zoom 2)
-2. Immediately fit to catch bounds if catches exist
-3. Otherwise, use `navigator.geolocation` to center on the user's position
-
-### Step 3: Trigger map resize on show
-MapLibre needs to know when its container becomes visible after being hidden. Call `map.resize()` when the tab becomes active. Use a reactive statement watching a prop or store that indicates visibility.
+### MapView.svelte: Complete rewrite
+- **Removed manual GPS positioning entirely.** The `GeolocateControl` button (crosshair icon) handles user-initiated location centering. No more competing `getCurrentPosition` + `flyTo` animations.
+- **Proper marker lifecycle.** Track markers in an `activeMarkers: maplibregl.Marker[]` array. Clear by calling `marker.remove()` through MapLibre's API, not raw DOM queries.
+- **Load catches after map ready.** Use `map.on('load', () => loadCatches())` so positioning only happens after tiles are loaded.
+- **One-time `fitBounds` with `animate: false`.** Guard with `hasFittedBounds` flag. Instant positioning, no animation that can race.
+- **Visibility resize uses `requestAnimationFrame`** and only fires on actual `false → true` transition (tracked via `prevVisible`), not on every reactive update.
+- **Default center is continental US** (`[-98.5, 39.8]`, zoom 3) — reasonable starting view.
 
 **Files changed:** `frontend/src/App.svelte`, `frontend/src/lib/pages/MapView.svelte`
 

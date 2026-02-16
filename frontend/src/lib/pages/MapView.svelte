@@ -8,88 +8,26 @@
 
   let mapContainer: HTMLDivElement;
   let map: maplibregl.Map | null = null;
-  let positioned = false;
+  let activeMarkers: maplibregl.Marker[] = [];
+  let hasFittedBounds = false;
+  let prevVisible = true;
 
-  function positionMap(m: maplibregl.Map, center: [number, number], zoom: number) {
-    if (positioned) return;
-    positioned = true;
-    m.jumpTo({ center, zoom });
+  function clearMarkers() {
+    for (const m of activeMarkers) {
+      m.remove();
+    }
+    activeMarkers = [];
   }
 
-  onMount(() => {
-    loadCatches();
+  function syncMarkers(catchList: any[]) {
+    if (!map) return;
 
-    map = new maplibregl.Map({
-      container: mapContainer,
-      style: {
-        version: 8,
-        sources: {
-          osm: {
-            type: 'raster',
-            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-            tileSize: 256,
-            attribution: '&copy; OpenStreetMap contributors',
-          },
-        },
-        layers: [
-          {
-            id: 'osm',
-            type: 'raster',
-            source: 'osm',
-          },
-        ],
-      },
-      center: [0, 0],
-      zoom: 2,
-    });
-
-    map.addControl(new maplibregl.NavigationControl(), 'top-right');
-
-    const geolocate = new maplibregl.GeolocateControl({
-      positionOptions: { enableHighAccuracy: true },
-      trackUserLocation: false,
-      showUserLocation: true,
-    });
-    map.addControl(geolocate, 'top-right');
-
-    // GPS fallback: only used if catches haven't positioned the map first
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          if (map && !positioned) {
-            positionMap(map, [pos.coords.longitude, pos.coords.latitude], 10);
-          }
-        },
-        () => {},
-        { enableHighAccuracy: true }
-      );
-    }
-
-    return () => {
-      map?.remove();
-    };
-  });
-
-  // Resize map when tab becomes visible
-  $effect(() => {
-    if (visible && map) {
-      setTimeout(() => map?.resize(), 0);
-    }
-  });
-
-  // Update markers when catches change
-  $effect(() => {
-    const currentCatches = $catches;
-    if (!map || !currentCatches.length) return;
-
-    // Remove existing markers
-    const markers = document.querySelectorAll('.catch-marker');
-    markers.forEach(m => m.remove());
+    clearMarkers();
 
     const bounds = new maplibregl.LngLatBounds();
     let hasBounds = false;
 
-    for (const c of currentCatches) {
+    for (const c of catchList) {
       if (!c.latitude || !c.longitude) continue;
 
       const el = document.createElement('div');
@@ -113,18 +51,83 @@
         </div>
       `);
 
-      new maplibregl.Marker({ element: el })
+      const marker = new maplibregl.Marker({ element: el })
         .setLngLat([c.longitude, c.latitude])
         .setPopup(popup)
-        .addTo(map!);
+        .addTo(map);
 
+      activeMarkers.push(marker);
       bounds.extend([c.longitude, c.latitude]);
       hasBounds = true;
     }
 
-    if (hasBounds && !positioned) {
-      positioned = true;
-      map!.fitBounds(bounds, { padding: 50, maxZoom: 12, animate: false });
+    if (hasBounds && !hasFittedBounds) {
+      hasFittedBounds = true;
+      map.fitBounds(bounds, { padding: 50, maxZoom: 12, animate: false });
+    }
+  }
+
+  onMount(() => {
+    map = new maplibregl.Map({
+      container: mapContainer,
+      style: {
+        version: 8,
+        sources: {
+          osm: {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '&copy; OpenStreetMap contributors',
+          },
+        },
+        layers: [
+          {
+            id: 'osm',
+            type: 'raster',
+            source: 'osm',
+          },
+        ],
+      },
+      center: [-98.5, 39.8],
+      zoom: 3,
+    });
+
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+
+    map.addControl(new maplibregl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: false,
+      showUserLocation: true,
+    }), 'top-right');
+
+    // Load catches after map is ready
+    map.on('load', () => {
+      loadCatches();
+    });
+
+    return () => {
+      clearMarkers();
+      map?.remove();
+      map = null;
+    };
+  });
+
+  // Handle tab visibility: resize map when shown after being hidden
+  $effect(() => {
+    const isVisible = visible;
+    if (isVisible && !prevVisible && map) {
+      requestAnimationFrame(() => {
+        map?.resize();
+      });
+    }
+    prevVisible = isVisible;
+  });
+
+  // Sync markers when catches change
+  $effect(() => {
+    const catchList = $catches;
+    if (catchList.length > 0) {
+      syncMarkers(catchList);
     }
   });
 </script>
