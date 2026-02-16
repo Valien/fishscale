@@ -8,7 +8,13 @@
 
   let mapContainer: HTMLDivElement;
   let map: maplibregl.Map | null = null;
-  let initialFitDone = false;
+  let positioned = false;
+
+  function positionMap(m: maplibregl.Map, center: [number, number], zoom: number) {
+    if (positioned) return;
+    positioned = true;
+    m.jumpTo({ center, zoom });
+  }
 
   onMount(() => {
     loadCatches();
@@ -39,16 +45,12 @@
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-    // Center on user GPS if no catches to fit
+    // GPS fallback: only used if catches haven't positioned the map first
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          if (map && !initialFitDone) {
-            map.flyTo({
-              center: [pos.coords.longitude, pos.coords.latitude],
-              zoom: 10,
-            });
-            initialFitDone = true;
+          if (map && !positioned) {
+            positionMap(map, [pos.coords.longitude, pos.coords.latitude], 10);
           }
         },
         () => {},
@@ -64,7 +66,6 @@
   // Resize map when tab becomes visible
   $effect(() => {
     if (visible && map) {
-      // Small delay to let CSS display:none be removed first
       setTimeout(() => map?.resize(), 0);
     }
   });
@@ -114,9 +115,9 @@
       hasBounds = true;
     }
 
-    if (hasBounds && !initialFitDone) {
-      map!.fitBounds(bounds, { padding: 50, maxZoom: 12 });
-      initialFitDone = true;
+    if (hasBounds && !positioned) {
+      positioned = true;
+      map!.fitBounds(bounds, { padding: 50, maxZoom: 12, animate: false });
     }
   });
 </script>
