@@ -4,9 +4,11 @@ import (
 	"io/fs"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httprate"
 	"github.com/jmoiron/sqlx"
 
 	"github.com/allen/fishscale/internal/config"
@@ -23,6 +25,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, store storage.Store, authMiddlew
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(chiMiddleware.Compress(5))
 	r.Use(appMiddleware.SecurityHeaders)
+	r.Use(httprate.LimitByIP(100, 1*time.Minute))
 
 	if authMiddleware != nil {
 		r.Use(authMiddleware)
