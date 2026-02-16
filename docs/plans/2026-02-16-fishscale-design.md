@@ -408,3 +408,18 @@ These are explicitly out of scope for v1 but the architecture is designed to acc
 - **Alternative map providers:** Map provider is abstracted behind an interface. Swap MapLibre for Google Maps or others.
 - **Rich analytics:** Weather correlation, heatmaps, moon phase tracking, seasonal pattern analysis. The data model already captures enough to support this.
 - **Import from CSV/JSON:** v1 supports export only. Import can be added using the same format.
+
+## Ideas & Enhancements
+
+Quick capture list for future work. Move items to "Future Considerations" once scoped, or into an iteration plan when ready to build.
+
+- [ ] Photo picker should open device photo album by default instead of camera, so users can upload pictures already taken (remove `capture="environment"` from file input, keep `accept="image/*"`)
+- [ ] Run security iteration plan 3
+- [ ] Determine whether CI/CD with GitHub Actions is needed
+- [ ] Catch log entries should be clickable/editable — tap to view full catch details, edit fields inline
+- [ ] Redo bottom nav icons (map, log, stats, settings) — current icons need improvement
+- [ ] Investigate species dropdown — still broken, may be overcomplicating it. Look for simpler alternatives or remove entirely for now
+- [ ] Fish-log page should remember user's location and auto-update without prompting
+- [ ] Investigate cancel button on fish-log page — may not be working
+- [ ]
+- [ ]
