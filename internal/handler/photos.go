@@ -149,7 +149,10 @@ func (h *PhotoHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.db.ExecContext(r.Context(), "DELETE FROM photos WHERE id = ?", id)
+	if _, err := h.db.ExecContext(r.Context(), "DELETE FROM photos WHERE id = ?", id); err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to delete photo")
+		return
+	}
 	h.store.Delete(photo.Filename)
 
 	w.WriteHeader(http.StatusNoContent)

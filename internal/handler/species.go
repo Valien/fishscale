@@ -76,9 +76,17 @@ func (h *SpeciesHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, _ := result.LastInsertId()
+	id, err := result.LastInsertId()
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to get created ID")
+		return
+	}
+
 	var species model.Species
-	h.db.GetContext(r.Context(), &species, "SELECT * FROM species WHERE id = ?", id)
+	if err := h.db.GetContext(r.Context(), &species, "SELECT * FROM species WHERE id = ?", id); err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to fetch created species")
+		return
+	}
 
 	jsonResponse(w, http.StatusCreated, species)
 }

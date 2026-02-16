@@ -61,10 +61,13 @@ func (h *TripHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var catches []model.Catch
-	h.db.SelectContext(r.Context(), &catches, `SELECT c.*, COALESCE(s.name, '') as species_name
+	if err := h.db.SelectContext(r.Context(), &catches, `SELECT c.*, COALESCE(s.name, '') as species_name
 		FROM catches c
 		LEFT JOIN species s ON c.species_id = s.id
-		WHERE c.trip_id = ? ORDER BY c.caught_at DESC`, id)
+		WHERE c.trip_id = ? ORDER BY c.caught_at DESC`, id); err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to query catches")
+		return
+	}
 	trip.Catches = catches
 
 	jsonResponse(w, http.StatusOK, trip)
@@ -106,9 +109,17 @@ func (h *TripHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, _ := result.LastInsertId()
+	id, err := result.LastInsertId()
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to get created ID")
+		return
+	}
+
 	var trip model.Trip
-	h.db.GetContext(r.Context(), &trip, "SELECT * FROM trips WHERE id = ?", id)
+	if err := h.db.GetContext(r.Context(), &trip, "SELECT * FROM trips WHERE id = ?", id); err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to fetch created trip")
+		return
+	}
 
 	jsonResponse(w, http.StatusCreated, trip)
 }
@@ -162,7 +173,10 @@ func (h *TripHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var trip model.Trip
-	h.db.GetContext(r.Context(), &trip, "SELECT * FROM trips WHERE id = ?", id)
+	if err := h.db.GetContext(r.Context(), &trip, "SELECT * FROM trips WHERE id = ?", id); err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to fetch updated trip")
+		return
+	}
 
 	jsonResponse(w, http.StatusOK, trip)
 }
@@ -181,7 +195,10 @@ func (h *TripHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Unlink catches from this trip (don't delete them)
-	h.db.ExecContext(r.Context(), "UPDATE catches SET trip_id = NULL WHERE trip_id = ? AND user_id = ?", id, user.ID)
+	if _, err := h.db.ExecContext(r.Context(), "UPDATE catches SET trip_id = NULL WHERE trip_id = ? AND user_id = ?", id, user.ID); err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to unlink catches")
+		return
+	}
 
 	result, err := h.db.ExecContext(r.Context(), "DELETE FROM trips WHERE id = ? AND user_id = ?", id, user.ID)
 	if err != nil {
@@ -189,7 +206,11 @@ func (h *TripHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, _ := result.RowsAffected()
+	rows, err := result.RowsAffected()
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to confirm deletion")
+		return
+	}
 	if rows == 0 {
 		jsonError(w, http.StatusNotFound, "trip not found")
 		return

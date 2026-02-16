@@ -73,7 +73,10 @@ func (h *CatchHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var photos []model.Photo
-	h.db.SelectContext(r.Context(), &photos, "SELECT * FROM photos WHERE catch_id = ? ORDER BY sort_order", id)
+	if err := h.db.SelectContext(r.Context(), &photos, "SELECT * FROM photos WHERE catch_id = ? ORDER BY sort_order", id); err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to query photos")
+		return
+	}
 	catch.Photos = photos
 
 	jsonResponse(w, http.StatusOK, catch)
@@ -114,13 +117,20 @@ func (h *CatchHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, _ := result.LastInsertId()
+	id, err := result.LastInsertId()
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to get created ID")
+		return
+	}
 
 	var catch model.Catch
-	h.db.GetContext(r.Context(), &catch, `SELECT c.*, COALESCE(s.name, '') as species_name
+	if err := h.db.GetContext(r.Context(), &catch, `SELECT c.*, COALESCE(s.name, '') as species_name
 		FROM catches c
 		LEFT JOIN species s ON c.species_id = s.id
-		WHERE c.id = ?`, id)
+		WHERE c.id = ?`, id); err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to fetch created catch")
+		return
+	}
 
 	jsonResponse(w, http.StatusCreated, catch)
 }
@@ -174,10 +184,13 @@ func (h *CatchHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var catch model.Catch
-	h.db.GetContext(r.Context(), &catch, `SELECT c.*, COALESCE(s.name, '') as species_name
+	if err := h.db.GetContext(r.Context(), &catch, `SELECT c.*, COALESCE(s.name, '') as species_name
 		FROM catches c
 		LEFT JOIN species s ON c.species_id = s.id
-		WHERE c.id = ?`, id)
+		WHERE c.id = ?`, id); err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to fetch updated catch")
+		return
+	}
 
 	jsonResponse(w, http.StatusOK, catch)
 }
@@ -196,7 +209,10 @@ func (h *CatchHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var photos []model.Photo
-	h.db.SelectContext(r.Context(), &photos, "SELECT * FROM photos WHERE catch_id = ?", id)
+	if err := h.db.SelectContext(r.Context(), &photos, "SELECT * FROM photos WHERE catch_id = ?", id); err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to query photos")
+		return
+	}
 
 	result, err := h.db.ExecContext(r.Context(), "DELETE FROM catches WHERE id = ? AND user_id = ?", id, user.ID)
 	if err != nil {
@@ -204,7 +220,11 @@ func (h *CatchHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rows, _ := result.RowsAffected()
+	rows, err := result.RowsAffected()
+	if err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to confirm deletion")
+		return
+	}
 	if rows == 0 {
 		jsonError(w, http.StatusNotFound, "catch not found")
 		return

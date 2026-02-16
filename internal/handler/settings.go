@@ -90,7 +90,10 @@ func (h *SettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var settings model.UserSettings
-	h.db.GetContext(r.Context(), &settings, "SELECT * FROM user_settings WHERE user_id = ?", user.ID)
+	if err := h.db.GetContext(r.Context(), &settings, "SELECT * FROM user_settings WHERE user_id = ?", user.ID); err != nil {
+		jsonError(w, http.StatusInternalServerError, "failed to fetch updated settings")
+		return
+	}
 
 	jsonResponse(w, http.StatusOK, settings)
 }
