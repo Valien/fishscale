@@ -23,6 +23,9 @@ func main() {
 	defer stop()
 
 	cfg := config.Load()
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("invalid configuration: %v", err)
+	}
 
 	db, err := database.Open(cfg.DBPath)
 	if err != nil {
