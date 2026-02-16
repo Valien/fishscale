@@ -80,7 +80,7 @@ cd frontend && npm run dev
 ### Run tests
 
 ```bash
-go test ./... -v
+GOWORK=off go test ./... -v
 ```
 
 ### Build the binary

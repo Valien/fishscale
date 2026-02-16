@@ -55,6 +55,7 @@ Single Go binary with everything embedded. Serves the Svelte SPA and JSON API ov
 ### Key Architecture Decisions
 
 - **Embedded SPA:** Single artifact, trivial deployment, no reverse proxy needed. Frontend rebuilds require recompiling the Go binary (mitigated by dev mode serving from disk).
+- **SPA cache headers:** `index.html` is served with `Cache-Control: no-cache, no-store, must-revalidate` so deploys take effect immediately (critical for Safari which aggressively caches HTML). Vite's hashed assets under `/assets/` are served with `Cache-Control: public, max-age=31536000, immutable`.
 - **Provider interfaces:** Map provider and photo storage have abstraction layers so defaults (MapLibre, local filesystem) can be swapped for alternatives (Google Maps, S3) without architectural changes.
 - **No ports exposed:** tsnet handles all networking within the Tailnet. No public internet exposure.
 
@@ -135,6 +136,7 @@ Single Go binary with everything embedded. Serves the Svelte SPA and JSON API ov
 | user_id | INTEGER UNIQUE FK | References users(id) |
 | theme | TEXT | 'light', 'dark', 'system' (default: 'system') |
 | units | TEXT | 'imperial', 'metric' (default: 'imperial') |
+| species_filter | TEXT | 'all', 'freshwater', 'saltwater' (default: 'all') |
 | updated_at | DATETIME | Auto-populated |
 
 ### Design Notes
@@ -241,7 +243,7 @@ The most important screen in the app. Optimized for speed on the water.
 - Autocomplete from history. Bait/lure and gear fields learn from previous entries.
 - Two-tier form. Quick save needs only species + bait + kept/released. Everything else is behind "More Detail."
 - Save is always visible. You can save with just auto-filled data if in a rush.
-- Species dropdown must work on iOS Safari. Uses touch-friendly events (touchend), a backdrop overlay for dismissal, and avoids focus traps that freeze the page.
+- Species dropdown must work on iOS Safari. Uses `ontouchend` on dropdown items (fires reliably on finger lift), `onmousedown` for desktop, and `onblur` with a 200ms delay on the input for dismiss. A `cancelDismiss` on `ontouchstart` prevents the blur timer from hiding the dropdown before touch completes. No backdrop overlay (caused z-index stacking issues on Safari). The `justSelected` flag is a plain `let` (not `$state`) to avoid Svelte 5 `$effect` re-trigger loops.
 
 ### Map View
 
