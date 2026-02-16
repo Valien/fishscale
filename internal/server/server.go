@@ -16,14 +16,16 @@ import (
 	"github.com/allen/fishscale/internal/storage"
 )
 
-func NewRouter(cfg *config.Config, db *sqlx.DB, store storage.Store) http.Handler {
+func NewRouter(cfg *config.Config, db *sqlx.DB, store storage.Store, authMiddleware func(http.Handler) http.Handler) http.Handler {
 	r := chi.NewRouter()
 
 	r.Use(chiMiddleware.Logger)
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(chiMiddleware.Compress(5))
 
-	if cfg.DevMode {
+	if authMiddleware != nil {
+		r.Use(authMiddleware)
+	} else if cfg.DevMode {
 		r.Use(appMiddleware.DevAuth)
 	}
 
