@@ -1,13 +1,16 @@
 package server
 
 import (
+	"io/fs"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/jmoiron/sqlx"
 
 	"github.com/allen/fishscale/internal/config"
+	"github.com/allen/fishscale/internal/frontend"
 	"github.com/allen/fishscale/internal/handler"
 	appMiddleware "github.com/allen/fishscale/internal/middleware"
 	"github.com/allen/fishscale/internal/storage"
@@ -64,7 +67,27 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, store storage.Store) http.Handle
 	// Serve photos from storage directory
 	r.Get("/photos/*", http.StripPrefix("/photos/", http.FileServer(http.Dir(cfg.PhotoDir))).ServeHTTP)
 
-	// SPA fallback will be added in Task 11 when frontend is embedded
+	// Serve embedded SPA frontend with fallback to index.html
+	distFS, err := fs.Sub(frontend.Assets, "dist")
+	if err == nil {
+		fileServer := http.FileServer(http.FS(distFS))
+		r.Get("/*", func(w http.ResponseWriter, r *http.Request) {
+			path := r.URL.Path
+
+			// Try to serve the exact file first
+			if path != "/" && !strings.HasSuffix(path, "/") {
+				if f, err := distFS.Open(strings.TrimPrefix(path, "/")); err == nil {
+					f.Close()
+					fileServer.ServeHTTP(w, r)
+					return
+				}
+			}
+
+			// SPA fallback: serve index.html for all non-file routes
+			r.URL.Path = "/"
+			fileServer.ServeHTTP(w, r)
+		})
+	}
 
 	return r
 }
