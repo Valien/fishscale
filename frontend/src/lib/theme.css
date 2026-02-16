@@ -136,6 +136,8 @@ body {
 
 input, select, textarea {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   padding: 10px 12px;
   border: 1px solid var(--input-border);
   border-radius: 8px;
