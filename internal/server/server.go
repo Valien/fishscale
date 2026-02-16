@@ -22,6 +22,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, store storage.Store, authMiddlew
 	r.Use(chiMiddleware.Logger)
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(chiMiddleware.Compress(5))
+	r.Use(appMiddleware.SecurityHeaders)
 
 	if authMiddleware != nil {
 		r.Use(authMiddleware)
