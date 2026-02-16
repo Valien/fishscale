@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"bytes"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -19,6 +21,22 @@ type PhotoHandler struct {
 
 func NewPhotoHandler(db *sqlx.DB, store storage.Store) *PhotoHandler {
 	return &PhotoHandler{db: db, store: store}
+}
+
+// Allowed MIME types (checked via magic bytes, not file extension)
+var allowedMIME = map[string]bool{
+	"image/jpeg": true,
+	"image/png":  true,
+	"image/gif":  true,
+	"image/webp": true,
+}
+
+// Force safe extensions based on detected MIME type
+var mimeToExt = map[string]string{
+	"image/jpeg": ".jpg",
+	"image/png":  ".png",
+	"image/gif":  ".gif",
+	"image/webp": ".webp",
 }
 
 func (h *PhotoHandler) Add(w http.ResponseWriter, r *http.Request) {
@@ -41,11 +59,12 @@ func (h *PhotoHandler) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse multipart form (32MB max)
-	if err := r.ParseMultipartForm(32 << 20); err != nil {
+	// Parse multipart form (10MB max)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
 		jsonError(w, http.StatusBadRequest, "failed to parse form")
 		return
 	}
+	defer r.MultipartForm.RemoveAll() // clean up temp files
 
 	files := r.MultipartForm.File["photos"]
 	if len(files) == 0 {
@@ -60,7 +79,22 @@ func (h *PhotoHandler) Add(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		path, err := h.store.Save(fh.Filename, f)
+		// Read first 512 bytes for MIME detection
+		head := make([]byte, 512)
+		n, _ := f.Read(head)
+		mime := http.DetectContentType(head[:n])
+
+		if !allowedMIME[mime] {
+			f.Close()
+			continue // skip non-image files silently
+		}
+
+		// Reset reader to beginning: wrap head + remaining data
+		combined := io.MultiReader(bytes.NewReader(head[:n]), f)
+
+		// Use safe extension based on detected content, not user-supplied filename
+		safeFilename := "photo" + mimeToExt[mime]
+		path, err := h.store.Save(safeFilename, combined)
 		f.Close()
 		if err != nil {
 			continue
@@ -85,7 +119,7 @@ func (h *PhotoHandler) Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(photos) == 0 {
-		jsonError(w, http.StatusInternalServerError, "failed to save any photos")
+		jsonError(w, http.StatusBadRequest, "no valid image files provided")
 		return
 	}
 
