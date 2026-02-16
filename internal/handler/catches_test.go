@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -135,5 +136,22 @@ func TestDeleteCatch(t *testing.T) {
 
 	if rec.Code != http.StatusNotFound {
 		t.Errorf("get after delete: got %d, want 404", rec.Code)
+	}
+}
+
+func TestListCatches_CanceledContext(t *testing.T) {
+	_, router := setupTestHandler(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // cancel immediately
+
+	req := httptest.NewRequest("GET", "/api/v1/catches", nil).WithContext(ctx)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	// With context propagation, a canceled context should result in an error response
+	// (500 or similar), not a successful 200 with empty data
+	if rec.Code == http.StatusOK {
+		t.Error("expected non-200 response for canceled context, got 200")
 	}
 }

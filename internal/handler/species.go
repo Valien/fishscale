@@ -30,9 +30,9 @@ func (h *SpeciesHandler) List(w http.ResponseWriter, r *http.Request) {
 	var species []model.Species
 	var err error
 	if q != "" {
-		err = h.db.Select(&species, "SELECT * FROM species WHERE name LIKE ? ORDER BY name", "%"+q+"%")
+		err = h.db.SelectContext(r.Context(), &species, "SELECT * FROM species WHERE name LIKE ? ORDER BY name", "%"+q+"%")
 	} else {
-		err = h.db.Select(&species, "SELECT * FROM species ORDER BY name")
+		err = h.db.SelectContext(r.Context(), &species, "SELECT * FROM species ORDER BY name")
 	}
 
 	if err != nil {
@@ -70,7 +70,7 @@ func (h *SpeciesHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.db.Exec("INSERT INTO species (name, category) VALUES (?, ?)", req.Name, req.Category)
+	result, err := h.db.ExecContext(r.Context(), "INSERT INTO species (name, category) VALUES (?, ?)", req.Name, req.Category)
 	if err != nil {
 		jsonError(w, http.StatusConflict, "species already exists")
 		return
@@ -78,7 +78,7 @@ func (h *SpeciesHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := result.LastInsertId()
 	var species model.Species
-	h.db.Get(&species, "SELECT * FROM species WHERE id = ?", id)
+	h.db.GetContext(r.Context(), &species, "SELECT * FROM species WHERE id = ?", id)
 
 	jsonResponse(w, http.StatusCreated, species)
 }

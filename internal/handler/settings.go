@@ -26,7 +26,7 @@ func (h *SettingsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var settings model.UserSettings
-	err := h.db.Get(&settings, "SELECT * FROM user_settings WHERE user_id = ?", user.ID)
+	err := h.db.GetContext(r.Context(), &settings, "SELECT * FROM user_settings WHERE user_id = ?", user.ID)
 	if err != nil {
 		// Return defaults if no settings exist
 		settings = model.UserSettings{
@@ -80,7 +80,7 @@ func (h *SettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
 		req.SpeciesFilter = "all"
 	}
 
-	_, err := h.db.Exec(`INSERT INTO user_settings (user_id, theme, units, species_filter, updated_at)
+	_, err := h.db.ExecContext(r.Context(), `INSERT INTO user_settings (user_id, theme, units, species_filter, updated_at)
 		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
 		ON CONFLICT(user_id) DO UPDATE SET theme=?, units=?, species_filter=?, updated_at=CURRENT_TIMESTAMP`,
 		user.ID, req.Theme, req.Units, req.SpeciesFilter, req.Theme, req.Units, req.SpeciesFilter)
@@ -90,7 +90,7 @@ func (h *SettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var settings model.UserSettings
-	h.db.Get(&settings, "SELECT * FROM user_settings WHERE user_id = ?", user.ID)
+	h.db.GetContext(r.Context(), &settings, "SELECT * FROM user_settings WHERE user_id = ?", user.ID)
 
 	jsonResponse(w, http.StatusOK, settings)
 }

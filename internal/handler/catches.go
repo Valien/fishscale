@@ -37,7 +37,7 @@ func (h *CatchHandler) List(w http.ResponseWriter, r *http.Request) {
 		ORDER BY c.caught_at DESC`
 
 	var catches []model.Catch
-	if err := h.db.Select(&catches, query, user.ID); err != nil {
+	if err := h.db.SelectContext(r.Context(), &catches, query, user.ID); err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to query catches")
 		return
 	}
@@ -67,13 +67,13 @@ func (h *CatchHandler) Get(w http.ResponseWriter, r *http.Request) {
 		FROM catches c
 		LEFT JOIN species s ON c.species_id = s.id
 		WHERE c.id = ? AND c.user_id = ?`
-	if err := h.db.Get(&catch, query, id, user.ID); err != nil {
+	if err := h.db.GetContext(r.Context(), &catch, query, id, user.ID); err != nil {
 		jsonError(w, http.StatusNotFound, "catch not found")
 		return
 	}
 
 	var photos []model.Photo
-	h.db.Select(&photos, "SELECT * FROM photos WHERE catch_id = ? ORDER BY sort_order", id)
+	h.db.SelectContext(r.Context(), &photos, "SELECT * FROM photos WHERE catch_id = ? ORDER BY sort_order", id)
 	catch.Photos = photos
 
 	jsonResponse(w, http.StatusOK, catch)
@@ -98,7 +98,7 @@ func (h *CatchHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.db.Exec(`INSERT INTO catches (
+	result, err := h.db.ExecContext(r.Context(), `INSERT INTO catches (
 		user_id, trip_id, species_id, caught_at, latitude, longitude, location_name,
 		length_in, weight_lb, kept, bait_or_lure, rod_setup, line_info, hook_size,
 		air_temp_f, wind_mph, wind_dir, conditions, pressure_mb, humidity_pct,
@@ -117,7 +117,7 @@ func (h *CatchHandler) Create(w http.ResponseWriter, r *http.Request) {
 	id, _ := result.LastInsertId()
 
 	var catch model.Catch
-	h.db.Get(&catch, `SELECT c.*, COALESCE(s.name, '') as species_name
+	h.db.GetContext(r.Context(), &catch, `SELECT c.*, COALESCE(s.name, '') as species_name
 		FROM catches c
 		LEFT JOIN species s ON c.species_id = s.id
 		WHERE c.id = ?`, id)
@@ -139,7 +139,7 @@ func (h *CatchHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var exists int
-	if err := h.db.Get(&exists, "SELECT 1 FROM catches WHERE id = ? AND user_id = ?", id, user.ID); err != nil {
+	if err := h.db.GetContext(r.Context(), &exists, "SELECT 1 FROM catches WHERE id = ? AND user_id = ?", id, user.ID); err != nil {
 		jsonError(w, http.StatusNotFound, "catch not found")
 		return
 	}
@@ -156,7 +156,7 @@ func (h *CatchHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.db.Exec(`UPDATE catches SET
+	_, err = h.db.ExecContext(r.Context(), `UPDATE catches SET
 		trip_id=?, species_id=?, caught_at=?, latitude=?, longitude=?, location_name=?,
 		length_in=?, weight_lb=?, kept=?, bait_or_lure=?, rod_setup=?, line_info=?, hook_size=?,
 		air_temp_f=?, wind_mph=?, wind_dir=?, conditions=?, pressure_mb=?, humidity_pct=?,
@@ -174,7 +174,7 @@ func (h *CatchHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var catch model.Catch
-	h.db.Get(&catch, `SELECT c.*, COALESCE(s.name, '') as species_name
+	h.db.GetContext(r.Context(), &catch, `SELECT c.*, COALESCE(s.name, '') as species_name
 		FROM catches c
 		LEFT JOIN species s ON c.species_id = s.id
 		WHERE c.id = ?`, id)
@@ -196,9 +196,9 @@ func (h *CatchHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var photos []model.Photo
-	h.db.Select(&photos, "SELECT * FROM photos WHERE catch_id = ?", id)
+	h.db.SelectContext(r.Context(), &photos, "SELECT * FROM photos WHERE catch_id = ?", id)
 
-	result, err := h.db.Exec("DELETE FROM catches WHERE id = ? AND user_id = ?", id, user.ID)
+	result, err := h.db.ExecContext(r.Context(), "DELETE FROM catches WHERE id = ? AND user_id = ?", id, user.ID)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to delete")
 		return

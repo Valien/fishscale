@@ -29,7 +29,7 @@ func (h *TripHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var trips []model.Trip
-	if err := h.db.Select(&trips, "SELECT * FROM trips WHERE user_id = ? ORDER BY started_at DESC", user.ID); err != nil {
+	if err := h.db.SelectContext(r.Context(), &trips, "SELECT * FROM trips WHERE user_id = ? ORDER BY started_at DESC", user.ID); err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to query trips")
 		return
 	}
@@ -55,13 +55,13 @@ func (h *TripHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var trip model.Trip
-	if err := h.db.Get(&trip, "SELECT * FROM trips WHERE id = ? AND user_id = ?", id, user.ID); err != nil {
+	if err := h.db.GetContext(r.Context(), &trip, "SELECT * FROM trips WHERE id = ? AND user_id = ?", id, user.ID); err != nil {
 		jsonError(w, http.StatusNotFound, "trip not found")
 		return
 	}
 
 	var catches []model.Catch
-	h.db.Select(&catches, `SELECT c.*, COALESCE(s.name, '') as species_name
+	h.db.SelectContext(r.Context(), &catches, `SELECT c.*, COALESCE(s.name, '') as species_name
 		FROM catches c
 		LEFT JOIN species s ON c.species_id = s.id
 		WHERE c.trip_id = ? ORDER BY c.caught_at DESC`, id)
@@ -99,7 +99,7 @@ func (h *TripHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result, err := h.db.Exec("INSERT INTO trips (user_id, name, started_at, notes) VALUES (?, ?, ?, ?)",
+	result, err := h.db.ExecContext(r.Context(), "INSERT INTO trips (user_id, name, started_at, notes) VALUES (?, ?, ?, ?)",
 		user.ID, req.Name, startedAt, req.Notes)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to create trip")
@@ -108,7 +108,7 @@ func (h *TripHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	id, _ := result.LastInsertId()
 	var trip model.Trip
-	h.db.Get(&trip, "SELECT * FROM trips WHERE id = ?", id)
+	h.db.GetContext(r.Context(), &trip, "SELECT * FROM trips WHERE id = ?", id)
 
 	jsonResponse(w, http.StatusCreated, trip)
 }
@@ -133,7 +133,7 @@ func (h *TripHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var exists int
-	if err := h.db.Get(&exists, "SELECT 1 FROM trips WHERE id = ? AND user_id = ?", id, user.ID); err != nil {
+	if err := h.db.GetContext(r.Context(), &exists, "SELECT 1 FROM trips WHERE id = ? AND user_id = ?", id, user.ID); err != nil {
 		jsonError(w, http.StatusNotFound, "trip not found")
 		return
 	}
@@ -154,7 +154,7 @@ func (h *TripHandler) Update(w http.ResponseWriter, r *http.Request) {
 		endedAt = &t
 	}
 
-	_, err = h.db.Exec("UPDATE trips SET name=?, ended_at=?, notes=? WHERE id=? AND user_id=?",
+	_, err = h.db.ExecContext(r.Context(), "UPDATE trips SET name=?, ended_at=?, notes=? WHERE id=? AND user_id=?",
 		req.Name, endedAt, req.Notes, id, user.ID)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to update trip")
@@ -162,7 +162,7 @@ func (h *TripHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var trip model.Trip
-	h.db.Get(&trip, "SELECT * FROM trips WHERE id = ?", id)
+	h.db.GetContext(r.Context(), &trip, "SELECT * FROM trips WHERE id = ?", id)
 
 	jsonResponse(w, http.StatusOK, trip)
 }
@@ -181,9 +181,9 @@ func (h *TripHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Unlink catches from this trip (don't delete them)
-	h.db.Exec("UPDATE catches SET trip_id = NULL WHERE trip_id = ? AND user_id = ?", id, user.ID)
+	h.db.ExecContext(r.Context(), "UPDATE catches SET trip_id = NULL WHERE trip_id = ? AND user_id = ?", id, user.ID)
 
-	result, err := h.db.Exec("DELETE FROM trips WHERE id = ? AND user_id = ?", id, user.ID)
+	result, err := h.db.ExecContext(r.Context(), "DELETE FROM trips WHERE id = ? AND user_id = ?", id, user.ID)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to delete trip")
 		return

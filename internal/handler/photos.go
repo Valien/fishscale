@@ -36,7 +36,7 @@ func (h *PhotoHandler) Add(w http.ResponseWriter, r *http.Request) {
 
 	// Verify catch ownership
 	var exists int
-	if err := h.db.Get(&exists, "SELECT 1 FROM catches WHERE id = ? AND user_id = ?", catchID, user.ID); err != nil {
+	if err := h.db.GetContext(r.Context(), &exists, "SELECT 1 FROM catches WHERE id = ? AND user_id = ?", catchID, user.ID); err != nil {
 		jsonError(w, http.StatusNotFound, "catch not found")
 		return
 	}
@@ -66,7 +66,7 @@ func (h *PhotoHandler) Add(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		result, err := h.db.Exec(
+		result, err := h.db.ExecContext(r.Context(),
 			"INSERT INTO photos (catch_id, filename, sort_order) VALUES (?, ?, ?)",
 			catchID, path, i,
 		)
@@ -107,7 +107,7 @@ func (h *PhotoHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	// Get photo and verify ownership through catch
 	var photo model.Photo
-	err = h.db.Get(&photo, `SELECT p.* FROM photos p
+	err = h.db.GetContext(r.Context(), &photo, `SELECT p.* FROM photos p
 		JOIN catches c ON p.catch_id = c.id
 		WHERE p.id = ? AND c.user_id = ?`, id, user.ID)
 	if err != nil {
@@ -115,7 +115,7 @@ func (h *PhotoHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.db.Exec("DELETE FROM photos WHERE id = ?", id)
+	h.db.ExecContext(r.Context(), "DELETE FROM photos WHERE id = ?", id)
 	h.store.Delete(photo.Filename)
 
 	w.WriteHeader(http.StatusNoContent)
