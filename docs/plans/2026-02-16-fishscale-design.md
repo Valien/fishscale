@@ -434,11 +434,14 @@ These are explicitly out of scope for v1 but the architecture is designed to acc
 
 Quick capture list for future work. Move items to "Future Considerations" once scoped, or into an iteration plan when ready to build.
 
-- [ ] Photo picker should open device photo album by default instead of camera, so users can upload pictures already taken (remove `capture="environment"` from file input, keep `accept="image/*"`)
+- [x] ~~Photo picker should open device photo album by default instead of camera~~ (Completed 2026-02-17: removed `capture="environment"` attribute)
 - [x] ~~Run security iteration plan 3~~ (Iteration 3 completed: photo ownership, Docker hardening, Vitest, ESLint/Prettier, code splitting, Makefile, slog)
 - [x] ~~Determine whether CI/CD with GitHub Actions is needed~~ (Not needed - deployments/integration/testing handled locally)
-- [ ] Catch log entries should be clickable/editable — tap to view full catch details, edit fields inline
+- [x] ~~Catch log entries should be clickable/editable~~ (Completed 2026-02-17: added CatchDetail view with photo navigation, edit mode with photo upload, see catch-detail-view-implementation.md)
 - [ ] Redo bottom nav icons (map, log, stats, settings) — current icons need improvement
 - [x] ~~Investigate species dropdown~~ (Completed 2026-02-17: replaced with native datalist, removed species table, see species-field-redesign.md)
 - [ ] Fish-log page should remember user's location and auto-update without prompting
 - [ ] Investigate cancel button on fish-log page — may not be working
+- [ ] Bring in the tailscale users identity (name) and display it on the app
+- [ ] Make the log entry for Species required. It shouldn't save if it is empty. But a user can Cancel out of the entry to go back to the log page.
+
