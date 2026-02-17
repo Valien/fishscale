@@ -67,6 +67,10 @@ func (h *CatchHandler) Get(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, "failed to query photos")
 		return
 	}
+	// Populate photo URLs
+	for i := range photos {
+		photos[i].URL = "/photos/" + photos[i].Filename
+	}
 	catch.Photos = photos
 
 	jsonResponse(w, http.StatusOK, catch)
