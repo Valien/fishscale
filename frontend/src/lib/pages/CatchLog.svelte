@@ -4,7 +4,6 @@
   import LogCatch from './LogCatch.svelte';
   import { api } from '../api';
 
-  let { onEdit }: { onEdit: (id: number) => void } = $props();
   let search = $state('');
 
   $effect(() => {
@@ -66,8 +65,12 @@
   }
 
   async function handleDeleteCatch(id: number) {
-    await deleteCatch(id);
-    handleBackToList();
+    try {
+      await deleteCatch(id);
+      handleBackToList();
+    } catch (err) {
+      alert('Failed to delete catch');
+    }
   }
 </script>
 
