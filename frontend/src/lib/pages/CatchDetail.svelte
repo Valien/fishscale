@@ -38,17 +38,43 @@
   } = $props();
 
   let showPhotoModal = $state(false);
-  let selectedPhotoUrl = $state('');
+  let selectedPhotoIndex = $state(0);
 
-  function viewPhoto(url: string) {
-    selectedPhotoUrl = url;
+  function viewPhoto(index: number) {
+    selectedPhotoIndex = index;
     showPhotoModal = true;
   }
 
   function closePhotoModal() {
     showPhotoModal = false;
-    selectedPhotoUrl = '';
+    selectedPhotoIndex = 0;
   }
+
+  function previousPhoto() {
+    if (catchData && catchData.photos && selectedPhotoIndex > 0) {
+      selectedPhotoIndex--;
+    }
+  }
+
+  function nextPhoto() {
+    if (catchData && catchData.photos && selectedPhotoIndex < catchData.photos.length - 1) {
+      selectedPhotoIndex++;
+    }
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (!showPhotoModal) return;
+    if (e.key === 'Escape') closePhotoModal();
+    if (e.key === 'ArrowLeft') previousPhoto();
+    if (e.key === 'ArrowRight') nextPhoto();
+  }
+
+  $effect(() => {
+    if (showPhotoModal) {
+      window.addEventListener('keydown', handleKeydown);
+      return () => window.removeEventListener('keydown', handleKeydown);
+    }
+  });
 
   function handleDelete() {
     if (confirm('Delete this catch? This cannot be undone.')) {
@@ -66,8 +92,8 @@
   <!-- Photo Gallery -->
   {#if catchData.photos && catchData.photos.length > 0}
     <div class="photo-gallery">
-      {#each catchData.photos as photo}
-        <button class="photo-thumb" onclick={() => viewPhoto(photo.url)} type="button" aria-label="View photo">
+      {#each catchData.photos as photo, i}
+        <button class="photo-thumb" onclick={() => viewPhoto(i)} type="button" aria-label="View photo">
           <img src={photo.url} alt="Catch photo" />
         </button>
       {/each}
@@ -184,11 +210,35 @@
 </div>
 
 <!-- Photo Modal -->
-{#if showPhotoModal}
+{#if showPhotoModal && catchData && catchData.photos}
   <div class="photo-modal" onclick={closePhotoModal} role="dialog" aria-label="Photo viewer">
     <div class="photo-modal-content" onclick={(e) => e.stopPropagation()}>
       <button class="photo-modal-close" onclick={closePhotoModal} type="button">×</button>
-      <img src={selectedPhotoUrl} alt="Full size catch photo" />
+      <img src={catchData.photos[selectedPhotoIndex]?.url} alt="Full size catch photo" />
+
+      {#if catchData.photos.length > 1}
+        <button
+          class="photo-nav photo-nav-prev"
+          onclick={previousPhoto}
+          disabled={selectedPhotoIndex === 0}
+          type="button"
+          aria-label="Previous photo"
+        >
+          ‹
+        </button>
+        <button
+          class="photo-nav photo-nav-next"
+          onclick={nextPhoto}
+          disabled={selectedPhotoIndex === catchData.photos.length - 1}
+          type="button"
+          aria-label="Next photo"
+        >
+          ›
+        </button>
+        <div class="photo-counter">
+          {selectedPhotoIndex + 1} / {catchData.photos.length}
+        </div>
+      {/if}
     </div>
   </div>
 {/if}
@@ -329,6 +379,53 @@
     cursor: pointer;
     width: 40px;
     height: 40px;
+  }
+
+  .photo-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    color: white;
+    font-size: 3rem;
+    cursor: pointer;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+  }
+
+  .photo-nav:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.7);
+  }
+
+  .photo-nav:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .photo-nav-prev {
+    left: 20px;
+  }
+
+  .photo-nav-next {
+    right: 20px;
+  }
+
+  .photo-counter {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
   }
 
   @media (max-width: 360px) {
