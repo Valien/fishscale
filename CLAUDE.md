@@ -47,6 +47,25 @@ GOWORK=off go test ./internal/handler/ -v
 GOWORK=off go test ./internal/handler/ -run TestListCatches -v
 ```
 
+## Running CI Checks Locally
+
+All integration and testing is done locally, not via GitHub Actions:
+
+```bash
+# Run all CI checks (tests, lints, format check, type check, build)
+make ci
+# or
+make check
+
+# Run individual checks
+make test           # Go tests (with race detector) + frontend tests
+make lint           # Go linter + frontend ESLint
+cd frontend && npm run format:check   # Prettier format check
+cd frontend && npm run check          # Svelte type check
+```
+
+**IMPORTANT:** After every major feature fix/enhancement, run `make ci` or `make check` before manually testing the app. This catches issues early and ensures code quality.
+
 ## Project Structure
 
 ```

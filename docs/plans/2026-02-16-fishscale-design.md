@@ -413,7 +413,6 @@ A single `tar` of the Docker volume or a scheduled `sqlite3 .backup` + `rsync` c
 - Log rotation: json-file driver, 10MB max, 3 files
 - `/healthz` endpoint for monitoring probes from the tailnet
 - Structured logging via `slog` with JSON handler and configurable log level
-- CI/CD: GitHub Actions with Go tests (race detector), golangci-lint, frontend build, svelte-check
 
 ### Caching
 - index.html: Cache-Control no-cache, no-store, must-revalidate (always fresh)
@@ -436,8 +435,8 @@ These are explicitly out of scope for v1 but the architecture is designed to acc
 Quick capture list for future work. Move items to "Future Considerations" once scoped, or into an iteration plan when ready to build.
 
 - [ ] Photo picker should open device photo album by default instead of camera, so users can upload pictures already taken (remove `capture="environment"` from file input, keep `accept="image/*"`)
-- [x] ~~Run security iteration plan 3~~ (Iteration 3 completed: photo ownership, Docker hardening, CI/CD, Vitest, ESLint/Prettier, code splitting, Makefile, slog)
-- [x] ~~Determine whether CI/CD with GitHub Actions is needed~~ (Added in Iteration 3 Task 3: 3-job workflow with Go tests, golangci-lint, frontend build, svelte-check)
+- [x] ~~Run security iteration plan 3~~ (Iteration 3 completed: photo ownership, Docker hardening, Vitest, ESLint/Prettier, code splitting, Makefile, slog)
+- [x] ~~Determine whether CI/CD with GitHub Actions is needed~~ (Not needed - deployments/integration/testing handled locally)
 - [ ] Catch log entries should be clickable/editable — tap to view full catch details, edit fields inline
 - [ ] Redo bottom nav icons (map, log, stats, settings) — current icons need improvement
 - [ ] Investigate species dropdown — still broken, may be overcomplicating it. Look for simpler alternatives or remove entirely for now

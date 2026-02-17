@@ -1,4 +1,4 @@
-.PHONY: dev build test lint clean frontend docker
+.PHONY: dev build test lint clean frontend docker ci check
 
 # Build frontend and copy to embed dir
 frontend:
@@ -16,7 +16,7 @@ dev:
 
 # Run all tests
 test:
-	GOWORK=off go test ./... -v
+	GOWORK=off go test ./... -v -race
 	cd frontend && npm test
 
 # Run linters
@@ -33,3 +33,16 @@ clean:
 # Docker build
 docker:
 	docker build -t fishscale:latest .
+
+# Run all CI checks locally (equivalent to GitHub Actions)
+ci: test lint
+	@echo "Running frontend format check..."
+	cd frontend && npm run format:check
+	@echo "Running frontend type check..."
+	cd frontend && npm run check
+	@echo "Building full binary..."
+	$(MAKE) build
+	@echo "✓ All CI checks passed!"
+
+# Alias for ci
+check: ci
