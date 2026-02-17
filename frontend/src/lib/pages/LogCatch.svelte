@@ -54,9 +54,9 @@
     });
   });
 
-  // Get GPS location on mount
+  // Get GPS location on mount (only in create mode)
   $effect(() => {
-    if ('geolocation' in navigator) {
+    if (mode === 'create' && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           form.latitude = pos.coords.latitude;
@@ -111,8 +111,8 @@
         form.pressure_mb = data.pressure_mb;
         form.humidity_pct = data.humidity_pct;
         loadingCatch = false;
-      }).catch(() => {
-        error = 'Failed to load catch data';
+      }).catch((e: any) => {
+        error = e.message || 'Failed to load catch data';
         loadingCatch = false;
       });
     }
@@ -363,7 +363,7 @@
   <div style="margin-top: 16px; display: flex; gap: 12px;">
     <button class="btn btn-outline" style="flex:1;" onclick={onDone}>Cancel</button>
     <button class="btn btn-primary" style="flex:2;" onclick={save} disabled={saving}>
-      {saving ? 'Saving...' : 'Save Catch'}
+      {saving ? 'Saving...' : mode === 'edit' ? 'Update Catch' : 'Save Catch'}
     </button>
   </div>
   {/if}
