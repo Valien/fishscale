@@ -39,6 +39,9 @@ export const api = {
   stats: {
     get: () => request<any>('/stats'),
   },
+  me: {
+    get: () => request<any>('/me'),
+  },
   trips: {
     list: () => request<any[]>('/trips'),
     get: (id: number) => request<any>(`/trips/${id}`),
