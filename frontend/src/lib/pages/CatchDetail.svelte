@@ -31,7 +31,7 @@
     onEdit,
     onDelete,
   }: {
-    catch: Catch;
+    catch?: Catch;
     onBack: () => void;
     onEdit: () => void;
     onDelete: (id: number) => void;
