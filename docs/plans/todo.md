@@ -13,8 +13,8 @@ Quick capture list for future work. Move items to "Future Considerations" once s
 - [ ] Redo bottom nav icons (map, log, stats, settings) — current icons need improvement
 - [ ] Fish-log page should remember user's location and auto-update without prompting
 - [ ] Investigate cancel button on fish-log page — may not be working
-- [ ] Bring in the tailscale users identity (name) and display it on the app
 - [ ] Make the log entry for Species required. It shouldn't save if it is empty. But a user can Cancel out of the entry to go back to the log page.
+- [ ] On the map page. When a user clicks the pin/entry it has a popup showing the catch.  Have a link in that popup to go to the details log if they want to (but not automatically)
 
 ## Future Considerations (v2+)
 
@@ -37,3 +37,4 @@ These are explicitly out of scope for v1 but the architecture is designed to acc
 - [x] ~~Investigate species dropdown~~ (Completed 2026-02-17: replaced with native datalist, removed species table, see species-field-redesign.md)
 - [x] ~~Run security iteration plan 3~~ (Iteration 3 completed: photo ownership, Docker hardening, Vitest, ESLint/Prettier, code splitting, Makefile, slog)
 - [x] ~~Determine whether CI/CD with GitHub Actions is needed~~ (Not needed - deployments/integration/testing handled locally)
+- [x] ~~Bring in the tailscale users identity (name) and display it on the app~~ (Completed 2026-02-17: added personalized fishing greetings to Log Catch page, see user-greeting-implementation.md)
