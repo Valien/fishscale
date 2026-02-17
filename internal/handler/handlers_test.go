@@ -97,7 +97,7 @@ func TestTrips(t *testing.T) {
 	}
 
 	var trips []model.Trip
-	json.NewDecoder(rec.Body).Decode(&trips)
+	_ = json.NewDecoder(rec.Body).Decode(&trips)
 	if len(trips) != 1 {
 		t.Errorf("expected 1 trip, got %d", len(trips))
 	}
@@ -125,7 +125,7 @@ func TestSpecies(t *testing.T) {
 	}
 
 	var species []model.Species
-	json.NewDecoder(rec.Body).Decode(&species)
+	_ = json.NewDecoder(rec.Body).Decode(&species)
 	if len(species) == 0 {
 		t.Error("expected seeded species")
 	}
@@ -140,7 +140,7 @@ func TestSpecies(t *testing.T) {
 	}
 
 	var filtered []model.Species
-	json.NewDecoder(rec.Body).Decode(&filtered)
+	_ = json.NewDecoder(rec.Body).Decode(&filtered)
 	if len(filtered) == 0 {
 		t.Error("expected at least one Bass species")
 	}
@@ -173,7 +173,7 @@ func TestSettings(t *testing.T) {
 	}
 
 	var settings model.UserSettings
-	json.NewDecoder(rec.Body).Decode(&settings)
+	_ = json.NewDecoder(rec.Body).Decode(&settings)
 	if settings.Theme != "system" {
 		t.Errorf("expected default theme 'system', got %q", settings.Theme)
 	}
@@ -190,7 +190,7 @@ func TestSettings(t *testing.T) {
 	}
 
 	var updated model.UserSettings
-	json.NewDecoder(rec.Body).Decode(&updated)
+	_ = json.NewDecoder(rec.Body).Decode(&updated)
 	if updated.Theme != "dark" {
 		t.Errorf("expected theme 'dark', got %q", updated.Theme)
 	}
@@ -222,7 +222,7 @@ func TestStats(t *testing.T) {
 	}
 
 	var stats model.StatsResponse
-	json.NewDecoder(rec.Body).Decode(&stats)
+	_ = json.NewDecoder(rec.Body).Decode(&stats)
 	if stats.TotalCatches != 1 {
 		t.Errorf("expected 1 total catch, got %d", stats.TotalCatches)
 	}

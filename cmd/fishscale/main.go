@@ -63,13 +63,16 @@ func main() {
 		}
 		defer ln.Close()
 
-		srv := &http.Server{Handler: router}
+		srv := &http.Server{
+			Handler:           router,
+			ReadHeaderTimeout: 10 * time.Second,
+		}
 
 		go func() {
 			<-ctx.Done()
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			srv.Shutdown(shutdownCtx)
+			_ = srv.Shutdown(shutdownCtx) //nolint:contextcheck // fresh context for graceful shutdown after parent cancellation
 		}()
 
 		log.Printf("fishscale available at https://%s.<tailnet>.ts.net", cfg.TSHostname)
@@ -98,13 +101,16 @@ func runDevServer(ctx context.Context, addr string) error {
 		return err
 	}
 
-	srv := &http.Server{Handler: router}
+	srv := &http.Server{
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
 
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		srv.Shutdown(shutdownCtx)
+		_ = srv.Shutdown(shutdownCtx) //nolint:contextcheck // fresh context for graceful shutdown after parent cancellation
 	}()
 
 	return srv.Serve(ln)

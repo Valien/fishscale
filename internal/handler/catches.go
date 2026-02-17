@@ -241,7 +241,7 @@ func (h *CatchHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, p := range photos {
-		h.store.Delete(p.Filename)
+		_ = h.store.Delete(p.Filename)
 	}
 
 	w.WriteHeader(http.StatusNoContent)

@@ -61,7 +61,7 @@ func (h *ExportHandler) Export(w http.ResponseWriter, r *http.Request) {
 func (h *ExportHandler) exportJSON(w http.ResponseWriter, catches []model.Catch, timestamp string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=fishscale-export-%s.json", timestamp))
-	json.NewEncoder(w).Encode(catches)
+	_ = json.NewEncoder(w).Encode(catches)
 }
 
 func (h *ExportHandler) exportCSV(w http.ResponseWriter, catches []model.Catch, timestamp string) {
@@ -79,7 +79,7 @@ func (h *ExportHandler) exportCSV(w http.ResponseWriter, catches []model.Catch, 
 		"Pressure (mb)", "Humidity (%)", "Water Temp (F)", "Water Clarity",
 		"Notes",
 	}
-	writer.Write(headers)
+	_ = writer.Write(headers)
 
 	for _, c := range catches {
 		row := []string{
@@ -106,7 +106,7 @@ func (h *ExportHandler) exportCSV(w http.ResponseWriter, catches []model.Catch, 
 			c.WaterClarity,
 			c.Notes,
 		}
-		writer.Write(row)
+		_ = writer.Write(row)
 	}
 }
 

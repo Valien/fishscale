@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
-	"tailscale.com/client/tailscale"
+	"tailscale.com/client/local"
 
 	"github.com/allen/fishscale/internal/model"
 )
 
-func TailscaleAuth(lc *tailscale.LocalClient, db *sqlx.DB) func(http.Handler) http.Handler {
+func TailscaleAuth(lc *local.Client, db *sqlx.DB) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			whois, err := lc.WhoIs(r.Context(), r.RemoteAddr)

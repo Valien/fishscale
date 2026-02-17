@@ -66,7 +66,7 @@ func (h *PhotoHandler) Add(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusBadRequest, "failed to parse form")
 		return
 	}
-	defer r.MultipartForm.RemoveAll() // clean up temp files
+	defer r.MultipartForm.RemoveAll() //nolint:errcheck // best-effort temp file cleanup
 
 	files := r.MultipartForm.File["photos"]
 	if len(files) == 0 {
@@ -107,7 +107,7 @@ func (h *PhotoHandler) Add(w http.ResponseWriter, r *http.Request) {
 			catchID, path, i,
 		)
 		if err != nil {
-			h.store.Delete(path)
+			_ = h.store.Delete(path)
 			continue
 		}
 
@@ -183,7 +183,7 @@ func (h *PhotoHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, "failed to delete photo")
 		return
 	}
-	h.store.Delete(photo.Filename)
+	_ = h.store.Delete(photo.Filename)
 
 	w.WriteHeader(http.StatusNoContent)
 }

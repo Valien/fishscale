@@ -86,8 +86,8 @@ func migrate(db *sqlx.DB) error {
 		return err
 	}
 
-	// Add species_filter column to existing user_settings tables
-	db.Exec("ALTER TABLE user_settings ADD COLUMN species_filter TEXT NOT NULL DEFAULT 'all'")
+	// Add species_filter column to existing user_settings tables (ignore error if column already exists)
+	_, _ = db.Exec("ALTER TABLE user_settings ADD COLUMN species_filter TEXT NOT NULL DEFAULT 'all'")
 
 	return seedSpecies(db)
 }
@@ -163,7 +163,7 @@ func seedSpecies(db *sqlx.DB) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer tx.Rollback() //nolint:errcheck // rollback after commit is a no-op
 
 	for _, s := range species {
 		if _, err := tx.Exec("INSERT INTO species (name, category) VALUES (?, ?)", s.Name, s.Category); err != nil {

@@ -36,7 +36,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, store storage.Store, authMiddlew
 	// Health check endpoint — used by monitoring probes from the tailnet.
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	})
 
 	catches := handler.NewCatchHandler(db, store)

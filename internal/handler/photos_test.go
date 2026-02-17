@@ -27,7 +27,7 @@ func TestPhotoUpload_RejectsNonImage(t *testing.T) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 	part, _ := writer.CreateFormFile("photos", "malicious.txt")
-	part.Write([]byte("this is not an image"))
+	_, _ = part.Write([]byte("this is not an image"))
 	writer.Close()
 
 	req = httptest.NewRequest("POST", "/api/v1/catches/1/photos", &buf)
@@ -60,9 +60,9 @@ func TestPhotoUpload_AcceptsJPEG(t *testing.T) {
 	writer := multipart.NewWriter(&buf)
 	part, _ := writer.CreateFormFile("photos", "fish.jpg")
 	// Minimal JPEG: SOI marker + APP0 marker (enough for http.DetectContentType)
-	part.Write([]byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00})
+	_, _ = part.Write([]byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00})
 	// Pad to 512 bytes for DetectContentType
-	part.Write(make([]byte, 501))
+	_, _ = part.Write(make([]byte, 501))
 	writer.Close()
 
 	req = httptest.NewRequest("POST", "/api/v1/catches/1/photos", &buf)
@@ -93,8 +93,8 @@ func TestPhotoServing_RequiresOwnership(t *testing.T) {
 	var buf bytes.Buffer
 	writer := multipart.NewWriter(&buf)
 	part, _ := writer.CreateFormFile("photos", "fish.jpg")
-	part.Write([]byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00})
-	part.Write(make([]byte, 501))
+	_, _ = part.Write([]byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00})
+	_, _ = part.Write(make([]byte, 501))
 	writer.Close()
 
 	req = httptest.NewRequest("POST", "/api/v1/catches/1/photos", &buf)
@@ -110,7 +110,7 @@ func TestPhotoServing_RequiresOwnership(t *testing.T) {
 	var photos []struct {
 		Filename string `json:"filename"`
 	}
-	json.NewDecoder(rec.Body).Decode(&photos)
+	_ = json.NewDecoder(rec.Body).Decode(&photos)
 	if len(photos) == 0 {
 		t.Fatal("expected at least one photo in response")
 	}
@@ -163,8 +163,8 @@ func TestPhotoUpload_AcceptsPNG(t *testing.T) {
 	writer := multipart.NewWriter(&buf)
 	part, _ := writer.CreateFormFile("photos", "fish.png")
 	// PNG magic header
-	part.Write([]byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A})
-	part.Write(make([]byte, 504))
+	_, _ = part.Write([]byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A})
+	_, _ = part.Write(make([]byte, 504))
 	writer.Close()
 
 	req = httptest.NewRequest("POST", "/api/v1/catches/1/photos", &buf)

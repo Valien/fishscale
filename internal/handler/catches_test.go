@@ -65,7 +65,7 @@ func TestCreateAndListCatch(t *testing.T) {
 	}
 
 	var created model.Catch
-	json.NewDecoder(rec.Body).Decode(&created)
+	_ = json.NewDecoder(rec.Body).Decode(&created)
 	if created.ID == 0 {
 		t.Fatal("expected non-zero ID")
 	}
@@ -80,7 +80,7 @@ func TestCreateAndListCatch(t *testing.T) {
 	}
 
 	var catches []model.Catch
-	json.NewDecoder(rec.Body).Decode(&catches)
+	_ = json.NewDecoder(rec.Body).Decode(&catches)
 	if len(catches) != 1 {
 		t.Errorf("expected 1 catch, got %d", len(catches))
 	}

@@ -23,7 +23,7 @@
 |---|----------|----------|--------|
 | 1 | Photo serving has no ownership check | MEDIUM | Task 1 ✅ |
 | 2 | Docker container runs as root | HIGH | Task 2 ✅ |
-| 3 | No CI/CD pipeline | HIGH | Task 3 |
+| 3 | No CI/CD pipeline | HIGH | Task 3 ✅ |
 | 4 | No frontend testing framework | HIGH | Task 4 |
 | 5 | Base images not pinned to patch versions | MEDIUM | Task 2 ✅ |
 | 6 | No Docker HEALTHCHECK | MEDIUM | Task 2 ✅ (skipped — see note) |
@@ -32,7 +32,7 @@
 | 9 | No ESLint/Prettier configuration | MEDIUM | Task 6 |
 | 10 | No LICENSE file (MIT mentioned in README only) | MEDIUM | Task 7 |
 | 11 | No Makefile for build automation | MEDIUM | Task 7 |
-| 12 | No golangci-lint configuration | MEDIUM | Task 3 |
+| 12 | No golangci-lint configuration | MEDIUM | Task 3 ✅ |
 | 13 | .dockerignore could exclude more directories | LOW | Task 2 ✅ |
 | 14 | No CONTRIBUTING.md or SECURITY.md | LOW | Deferred |
 
