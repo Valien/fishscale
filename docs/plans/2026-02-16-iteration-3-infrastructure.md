@@ -21,12 +21,12 @@
 
 | # | Category | Severity | Status |
 |---|----------|----------|--------|
-| 1 | Photo serving has no authentication | HIGH | Task 1 |
+| 1 | Photo serving has no ownership check | MEDIUM | Task 1 |
 | 2 | Docker container runs as root | HIGH | Task 2 |
 | 3 | No CI/CD pipeline | HIGH | Task 3 |
 | 4 | No frontend testing framework | HIGH | Task 4 |
 | 5 | Base images not pinned to patch versions | MEDIUM | Task 2 |
-| 6 | No Docker HEALTHCHECK | MEDIUM | Task 2 |
+| 6 | No Docker HEALTHCHECK | MEDIUM | Task 2 (skipped — see note) |
 | 7 | No resource limits in docker-compose | MEDIUM | Task 2 |
 | 8 | Single 1MB+ JS bundle, no code splitting | MEDIUM | Task 5 |
 | 9 | No ESLint/Prettier configuration | MEDIUM | Task 6 |
@@ -47,43 +47,40 @@
 
 ---
 
-## Task 1: Authenticate Photo Serving
+## Task 1: Photo Ownership Check on Serving
 
-**Severity:** HIGH
-**Finding:** `GET /photos/*` in `internal/server/server.go` serves photos directly via `http.FileServer` with no authentication middleware. Any device on the tailnet can access any photo by guessing or enumerating filenames.
+**Severity:** MEDIUM
+**Finding:** `GET /photos/*` in `internal/server/server.go` uses `http.FileServer` which serves any file by path. The auth middleware *does* run on this route (it's applied router-wide via `r.Use()`), so unauthenticated requests are blocked. However, any authenticated user can access any other user's photos by guessing the filename — `http.FileServer` has no concept of ownership.
+
+**Note on production context:** This app runs on a private Tailnet. In practice, most deployments are single-user. The Tailscale network layer ensures only authorized devices reach the server. This task is MEDIUM severity because multi-user tailnets could expose photos across users. For single-user deployments, this is cosmetic.
 
 **Files:**
-- Modify: `internal/server/server.go`
-- Test: `internal/server/server_test.go` (extend or create)
+- Modify: `internal/server/server.go` (replace FileServer with custom handler)
+- Modify: `internal/handler/photos.go` (add Serve method)
+- Test: `internal/handler/photos_test.go` (extend)
 
 **Step 1: Write the failing test**
 
+Add to `internal/handler/photos_test.go`:
+
 ```go
-func TestPhotoServingRequiresAuth(t *testing.T) {
-	dir := t.TempDir()
-	db, err := database.Open(dir + "/test.db")
-	if err != nil {
-		t.Fatalf("open db: %v", err)
-	}
-	defer db.Close()
+func TestPhotoServing_RequiresOwnership(t *testing.T) {
+	router := setupFullRouter(t)
 
-	photoDir := dir + "/photos"
-	os.MkdirAll(photoDir, 0o755)
-	os.WriteFile(filepath.Join(photoDir, "test.jpg"), []byte("fake image"), 0o644)
-
-	cfg := &config.Config{PhotoDir: photoDir, DevMode: true}
-	store := storage.NewLocalStore(cfg.PhotoDir)
-
-	// Router WITHOUT auth middleware (simulates unauthenticated request)
-	router := NewRouter(cfg, db, store, nil)
-
-	req := httptest.NewRequest("GET", "/photos/test.jpg", nil)
+	// Create a catch (owned by dev user ID 1)
+	catchBody, _ := json.Marshal(map[string]string{"caught_at": "2026-02-16T10:30:00Z"})
+	req := httptest.NewRequest("POST", "/api/v1/catches", bytes.NewReader(catchBody))
+	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
-	// Without auth, should get 401, not 200
+	// Try to serve a photo filename that isn't linked to any catch for this user
+	req = httptest.NewRequest("GET", "/photos/nonexistent-file.jpg", nil)
+	rec = httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
 	if rec.Code == http.StatusOK {
-		t.Error("expected photo serving to require auth, got 200 without auth middleware")
+		t.Error("expected non-owned photo to be rejected, got 200")
 	}
 }
 ```
@@ -91,32 +88,63 @@ func TestPhotoServingRequiresAuth(t *testing.T) {
 **Step 2: Run test to verify it fails**
 
 ```bash
-GOWORK=off go test ./internal/server/ -run TestPhotoServingRequiresAuth -v
+GOWORK=off go test ./internal/handler/ -run TestPhotoServing_RequiresOwnership -v
 ```
-Expected: FAIL — currently returns 200 without auth.
+Expected: FAIL — FileServer serves any file that exists on disk.
 
-**Step 3: Implement fix**
+**Step 3: Implement ownership-checked photo serving**
 
-In `internal/server/server.go`, move the photo serving route inside the authenticated route group (where the auth middleware is applied), or wrap it with the auth middleware directly:
+Replace the `http.FileServer` route in `server.go` with a handler that checks the photo belongs to the requesting user:
 
 ```go
-// BEFORE (outside auth group):
-r.Get("/photos/*", http.StripPrefix("/photos/", http.FileServer(http.Dir(cfg.PhotoDir))).ServeHTTP)
+// In server.go — replace the FileServer line:
+r.Get("/photos/*", photos.Serve)
+```
 
-// AFTER (inside the auth-protected group):
-r.Group(func(r chi.Router) {
-    if authMiddleware != nil {
-        r.Use(authMiddleware)
-    }
-    // ... existing API routes ...
-    r.Get("/photos/*", http.StripPrefix("/photos/", http.FileServer(http.Dir(cfg.PhotoDir))).ServeHTTP)
-})
+Add a `Serve` method to `PhotoHandler` in `photos.go`:
+
+```go
+func (h *PhotoHandler) Serve(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		jsonError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	// Extract filename from URL path
+	filename := strings.TrimPrefix(r.URL.Path, "/photos/")
+	if filename == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Verify this photo belongs to a catch owned by this user
+	var exists int
+	err := h.db.GetContext(r.Context(), &exists,
+		`SELECT 1 FROM photos p
+		 JOIN catches c ON p.catch_id = c.id
+		 WHERE p.filename = ? AND c.user_id = ?`, filename, user.ID)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	h.store.ServeFile(w, r, filename)
+}
+```
+
+Add `ServeFile` to the `storage.Store` interface and implement in `local.go`:
+
+```go
+func (s *LocalStore) ServeFile(w http.ResponseWriter, r *http.Request, filename string) {
+	http.ServeFile(w, r, filepath.Join(s.dir, filename))
+}
 ```
 
 **Step 4: Run test to verify it passes**
 
 ```bash
-GOWORK=off go test ./internal/server/ -run TestPhotoServingRequiresAuth -v
+GOWORK=off go test ./internal/handler/ -run TestPhotoServing_RequiresOwnership -v
 ```
 Expected: PASS
 
@@ -130,12 +158,12 @@ Expected: All PASS
 **Step 6: Commit**
 
 ```bash
-git add internal/server/ docs/plans/2026-02-16-iteration-3-infrastructure.md
-git commit -m "security: require authentication for photo serving
+git add internal/server/ internal/handler/photos.go internal/handler/photos_test.go internal/storage/ docs/plans/2026-02-16-iteration-3-infrastructure.md
+git commit -m "security: add ownership check to photo serving
 
-Move /photos/* route inside the auth-protected route group.
-Previously, any tailnet device could access photos without
-authentication by guessing filenames.
+Replace http.FileServer with a handler that verifies the requested
+photo belongs to a catch owned by the authenticated user. Previously,
+any authenticated tailnet user could access any photo by filename.
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
@@ -153,11 +181,27 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - .dockerignore could exclude docs/, .claude/, .worktrees/
 
 **Files:**
+- Modify: `internal/server/server.go` (add /healthz endpoint)
 - Modify: `Dockerfile`
 - Modify: `docker-compose.yml`
 - Modify: `.dockerignore`
 
-**Step 1: Update Dockerfile**
+**Step 1: Add a `/healthz` endpoint to the router**
+
+Before updating the Dockerfile, add a lightweight health check endpoint that works in both dev and production modes. In `internal/server/server.go`, add before the auth middleware:
+
+```go
+// Health check endpoint — no auth required, used by Docker HEALTHCHECK.
+// Placed before auth middleware so it works without Tailscale identity.
+r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte("ok"))
+})
+```
+
+This must be registered **before** the `r.Use(authMiddleware)` block (move it after the `r.Use(httprate.LimitByIP(...))` line and before the auth `if` block). Alternatively, use a separate inline router group with no auth.
+
+**Step 2: Update Dockerfile**
 
 ```dockerfile
 # Stage 1: Build Svelte frontend
@@ -186,23 +230,23 @@ RUN mkdir -p /data/photos /data/tsnet-state && \
     chown -R fishscale:fishscale /data
 USER fishscale
 VOLUME /data
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -q --spider http://localhost:8080/api/v1/species || exit 1
 ENTRYPOINT ["fishscale"]
 ```
 
-Note: HEALTHCHECK only works in dev mode (port 8080). In production, the app listens on tsnet. A more sophisticated health check could be added in the future — for now this catches container crashes.
+**Note on HEALTHCHECK:** We intentionally omit `HEALTHCHECK` from the Dockerfile. In dev mode, the app listens on `:8080` and a health check would work. In production, the app listens exclusively on tsnet (TLS on port 443 via Tailscale) — `wget` from inside the container cannot reach it without Tailscale credentials. A `HEALTHCHECK` that always fails in production is worse than no health check. If container health monitoring is needed, use an external probe from another tailnet node, or add a local-only health listener in a future iteration.
 
-**Step 2: Update docker-compose.yml**
+**Step 3: Update docker-compose.yml**
 
-Add resource limits and logging configuration:
+Add resource limits and logging configuration. Uses `mem_limit` and `cpus` (Compose v2 top-level keys) instead of `deploy.resources.limits` which requires `--compatibility` flag or Swarm mode:
 
 ```yaml
 services:
   fishscale:
-    image: fishscale:latest
+    build: .
     container_name: fishscale
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: 1.0
     volumes:
       - fishscale-data:/data
       - /dev/net/tun:/dev/net/tun
@@ -214,12 +258,7 @@ services:
       - TS_STATE_DIR=/data/tsnet-state
       - FISHSCALE_DB_PATH=/data/fish.db
       - FISHSCALE_PHOTO_DIR=/data/photos
-      - FISHSCALE_LOG_LEVEL=info
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-          cpus: '1.0'
+      - FISHSCALE_LOG_LEVEL=${FISHSCALE_LOG_LEVEL:-info}
     logging:
       driver: json-file
       options:
@@ -230,7 +269,7 @@ volumes:
   fishscale-data:
 ```
 
-**Step 3: Update .dockerignore**
+**Step 4: Update .dockerignore**
 
 Add exclusions for development/documentation directories:
 
@@ -243,23 +282,23 @@ docs/
 .gitignore
 ```
 
-**Step 4: Verify Docker build**
+**Step 6: Verify Docker build**
 
 ```bash
 docker build -t fishscale:test .
 docker run --rm fishscale:test whoami  # should print "fishscale", not "root"
 ```
 
-**Step 5: Commit**
+**Step 7: Commit**
 
 ```bash
-git add Dockerfile docker-compose.yml .dockerignore docs/plans/2026-02-16-iteration-3-infrastructure.md
+git add Dockerfile docker-compose.yml .dockerignore internal/server/server.go docs/plans/2026-02-16-iteration-3-infrastructure.md
 git commit -m "security: harden Docker deployment
 
-Run container as non-root user (fishscale:fishscale). Add
-HEALTHCHECK instruction for container orchestration. Add resource
-limits (256MB RAM, 1 CPU) and log rotation in docker-compose.
-Expand .dockerignore to exclude docs and dev directories.
+Run container as non-root user (fishscale:fishscale). Add /healthz
+endpoint for health probes. Add resource limits (256MB RAM, 1 CPU)
+and log rotation in docker-compose. Expand .dockerignore to exclude
+docs and dev directories.
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
@@ -323,6 +362,8 @@ on:
 jobs:
   test-backend:
     runs-on: ubuntu-latest
+    env:
+      GOWORK: 'off'
     steps:
       - uses: actions/checkout@v4
 
@@ -331,14 +372,12 @@ jobs:
           go-version: '1.25'
 
       - name: Run tests
-        run: GOWORK=off go test ./... -v -race
+        run: go test ./... -v -race
 
       - name: Run linter
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
-        env:
-          GOWORK: 'off'
 
   build-frontend:
     runs-on: ubuntu-latest
@@ -366,6 +405,8 @@ jobs:
   build-binary:
     needs: [test-backend, build-frontend]
     runs-on: ubuntu-latest
+    env:
+      GOWORK: 'off'
     steps:
       - uses: actions/checkout@v4
 
@@ -387,7 +428,7 @@ jobs:
         run: rm -rf internal/frontend/dist && cp -r frontend/dist internal/frontend/dist
 
       - name: Build Go binary
-        run: GOWORK=off CGO_ENABLED=0 go build -o fishscale ./cmd/fishscale
+        run: CGO_ENABLED=0 go build -o fishscale ./cmd/fishscale
 ```
 
 **Step 3: Verify locally**
@@ -464,10 +505,13 @@ Create `frontend/src/lib/__tests__/api.test.ts`:
 ```typescript
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Test that the API module constructs correct URLs and handles responses
+// Test that the API module constructs correct URLs and handles responses.
+// We use vi.resetModules() + dynamic import to get a fresh module per test,
+// since the api module captures `fetch` at import time.
 describe('API client', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.resetModules();
   });
 
   it('constructs correct catch list URL', async () => {
@@ -475,10 +519,12 @@ describe('API client', () => {
       new Response(JSON.stringify([]), { status: 200 })
     );
 
-    const { default: api } = await import('../api');
+    const { api } = await import('../api');
     await api.catches.list();
 
-    expect(fetchSpy).toHaveBeenCalledWith('/api/v1/catches', expect.any(Object));
+    expect(fetchSpy).toHaveBeenCalledWith('/api/v1/catches', expect.objectContaining({
+      headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
+    }));
   });
 
   it('throws on non-OK response', async () => {
@@ -486,11 +532,23 @@ describe('API client', () => {
       new Response(JSON.stringify({ error: 'not found' }), { status: 404 })
     );
 
-    const { default: api } = await import('../api');
-    await expect(api.catches.get(999)).rejects.toThrow();
+    const { api } = await import('../api');
+    await expect(api.catches.get(999)).rejects.toThrow('not found');
+  });
+
+  it('returns undefined for 204 responses', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(null, { status: 204 })
+    );
+
+    const { api } = await import('../api');
+    const result = await api.catches.delete(1);
+    expect(result).toBeUndefined();
   });
 });
 ```
+
+Note: `api` is a **named export** (not default) from `api.ts`. Each test uses `vi.resetModules()` + dynamic `import()` to get a fresh module instance, preventing mock leakage between tests.
 
 **Step 5: Run tests**
 
@@ -527,19 +585,31 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ## Task 5: Frontend Code Splitting
 
 **Severity:** MEDIUM
-**Finding:** Entire app ships as a single 1MB+ JS bundle. Map page loads MapLibre GL JS even when viewing settings.
+**Finding:** Entire app ships as a single 1MB+ JS bundle. MapLibre GL JS (~700KB) is included even when the user is viewing settings or the catch log.
 
 **Files:**
-- Modify: `frontend/src/App.svelte` (lazy-load pages)
 - Modify: `frontend/vite.config.ts` (configure chunk splitting)
+
+**Important context:** `MapView.svelte` is always mounted (hidden via CSS `display: none`) to preserve map zoom/pan state across tab switches. This means MapLibre will always be *imported* at app startup — `manualChunks` separates it into a cacheable chunk, but does NOT defer loading. True lazy-loading would require changing MapView to use dynamic `import('maplibre-gl')` inside `onMount`, which is a larger refactor.
+
+For now, `manualChunks` provides a caching benefit: when app code changes, users only re-download the app chunk — the MapLibre chunk (~700KB) stays cached since its content hash doesn't change. This is the right trade-off for a v1.
 
 **Step 1: Configure Vite manual chunks**
 
 In `frontend/vite.config.ts`, add build configuration:
 
 ```typescript
+import { defineConfig } from 'vite'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
+
 export default defineConfig({
-  // ... existing config ...
+  plugins: [svelte()],
+  server: {
+    proxy: {
+      '/api': 'http://localhost:8080',
+      '/photos': 'http://localhost:8080',
+    },
+  },
   build: {
     rollupOptions: {
       output: {
@@ -549,10 +619,8 @@ export default defineConfig({
       },
     },
   },
-});
+})
 ```
-
-This separates MapLibre GL (~700KB) into its own chunk that only loads when the map page is visited.
 
 **Step 2: Verify build**
 
@@ -560,16 +628,24 @@ This separates MapLibre GL (~700KB) into its own chunk that only loads when the 
 cd frontend && npm run build
 ```
 
-Check that the output shows multiple chunks with MapLibre separated.
+Check that the output shows multiple chunks. Expect something like:
+- `index-[hash].js` (~50-100KB) — app code
+- `maplibre-[hash].js` (~700KB) — MapLibre GL
 
 **Step 3: Commit**
 
 ```bash
 git add frontend/vite.config.ts docs/plans/2026-02-16-iteration-3-infrastructure.md
-git commit -m "perf: split MapLibre GL into separate chunk
+git commit -m "perf: split MapLibre GL into separate cacheable chunk
 
 Configure Vite manual chunks to separate maplibre-gl (~700KB) from
-the main bundle. The map chunk only loads when the map page is visited.
+the main bundle. MapLibre chunk is cached independently so app code
+changes don't force re-downloading the map library.
+
+Note: MapView is always mounted (CSS hidden) for state preservation,
+so the chunk is still loaded eagerly. True lazy-loading would require
+refactoring MapView to use dynamic import() — deferred to a future
+iteration.
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
@@ -747,20 +823,20 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ## Task 8: Structured Logging (slog)
 
 **Severity:** LOW (deferred from Iteration 2)
-**Finding:** All logging uses `log.Printf`. The `FISHSCALE_LOG_LEVEL` config is defined but unused.
+**Finding:** All logging uses `log.Printf`. The `FISHSCALE_LOG_LEVEL` config is defined but unused. There are 13 `log.Printf/Println/Fatalf` calls: 10 in `cmd/fishscale/main.go` and 3 in `internal/middleware/tailscale.go`. No handler files use logging directly (they return errors via `jsonError`).
 
 **Files:**
-- Modify: `cmd/fishscale/main.go`
-- Modify: `internal/config/config.go`
-- Modify: `internal/middleware/tailscale.go`
-- Modify: `internal/handler/*.go` (where log.Printf is used)
+- Modify: `internal/config/config.go` (add ParseLogLevel)
+- Test: `internal/config/config_test.go` (extend)
+- Modify: `cmd/fishscale/main.go` (initialize slog)
+- Modify: `internal/middleware/tailscale.go` (replace log.Printf)
 
 **Step 1: Write the failing test**
 
-Add to config test:
+Add to `internal/config/config_test.go`:
 
 ```go
-func TestLogLevelParsing(t *testing.T) {
+func TestParseLogLevel(t *testing.T) {
 	tests := []struct {
 		input string
 		want  slog.Level
@@ -769,8 +845,9 @@ func TestLogLevelParsing(t *testing.T) {
 		{"info", slog.LevelInfo},
 		{"warn", slog.LevelWarn},
 		{"error", slog.LevelError},
-		{"", slog.LevelInfo},       // default
-		{"invalid", slog.LevelInfo}, // fallback
+		{"DEBUG", slog.LevelDebug},   // case insensitive
+		{"", slog.LevelInfo},          // default
+		{"invalid", slog.LevelInfo},   // fallback
 	}
 	for _, tt := range tests {
 		got := ParseLogLevel(tt.input)
@@ -781,14 +858,60 @@ func TestLogLevelParsing(t *testing.T) {
 }
 ```
 
-**Step 2: Implement**
+**Step 2: Run test to verify it fails**
 
-Add `ParseLogLevel` to config package. In `main.go`, initialize `slog.SetDefault()` with a JSON handler using the parsed log level. Replace `log.Printf` calls in middleware and handlers with `slog.Info`, `slog.Error`, etc.
+```bash
+GOWORK=off go test ./internal/config/ -run TestParseLogLevel -v
+```
+Expected: FAIL — `ParseLogLevel` does not exist.
 
-**Step 3: Run tests, commit**
+**Step 3: Implement ParseLogLevel**
+
+Add to `internal/config/config.go`:
+
+```go
+import "log/slog"
+
+func ParseLogLevel(s string) slog.Level {
+	switch strings.ToLower(s) {
+	case "debug":
+		return slog.LevelDebug
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+```
+
+**Step 4: Initialize slog in main.go**
+
+After `config.Load()` and `Validate()`:
+
+```go
+logLevel := config.ParseLogLevel(cfg.LogLevel)
+slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
+```
+
+Replace `log.Println`/`log.Printf` with `slog.Info`/`slog.Error` throughout `main.go` and `tailscale.go`. Keep `log.Fatalf` for startup failures (slog has no Fatal — use `slog.Error` + `os.Exit(1)` or keep `log.Fatalf` for pre-slog initialization).
+
+**Step 5: Run tests, commit**
 
 ```bash
 GOWORK=off go test ./... -v
+```
+
+```bash
+git add internal/config/ cmd/fishscale/main.go internal/middleware/tailscale.go docs/plans/2026-02-16-iteration-3-infrastructure.md
+git commit -m "chore: replace log.Printf with slog structured logging
+
+Add config.ParseLogLevel() to parse FISHSCALE_LOG_LEVEL into slog
+levels. Initialize slog.SetDefault with JSON handler in main().
+Replace log.Printf in middleware with slog.Error/slog.Info.
+
+Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 
 ---
@@ -798,37 +921,52 @@ GOWORK=off go test ./... -v
 **Severity:** LOW (deferred from Iteration 2)
 **Finding:** Full-resolution photos stored and served. The `thumbnail` field in the photos table is unused.
 
+> **Note:** This task is **outline-only**. The implementation requires careful testing with real JPEG/PNG files and platform-specific image decoding behavior. Flesh out TDD steps when starting implementation.
+
 **Files:**
-- Modify: `internal/handler/photos.go`
-- Modify: `internal/storage/local.go`
-- Modify: `go.mod` (add imaging library)
+- Modify: `internal/handler/photos.go` (generate thumbnail after save)
+- Modify: `internal/storage/local.go` (add thumbnail path helper)
+- Modify: `go.mod` (add `github.com/disintegration/imaging`)
+- Test: `internal/handler/photos_test.go` (extend with thumbnail verification)
 
-**Implementation notes:**
-- Use `github.com/disintegration/imaging` for resize
-- On upload, after MIME validation, generate a 400px-wide thumbnail
-- Save thumbnail alongside original with `_thumb` suffix
-- Populate `thumbnail` field in DB
-- Serve thumbnails in list views, originals in detail views
+**Implementation approach:**
+- `github.com/disintegration/imaging` uses Go's `image` stdlib — works with `CGO_ENABLED=0`
+- After saving the original file, decode the image and resize to max 400px width (preserving aspect ratio)
+- Save thumbnail alongside original with `_thumb` suffix (e.g., `abc123.jpg` → `abc123_thumb.jpg`)
+- Populate `thumbnail` field in the photos DB insert
+- Frontend: serve thumbnails in list/map views, originals in detail/fullscreen views
+- If thumbnail generation fails, log the error but don't fail the upload — the original is still valid
 
-This task requires careful testing with real image files. Plan specific test approach when implementing.
+**Key test:** Upload a real JPEG (valid JFIF header + pixel data), verify that both original and `_thumb` files exist on disk after upload, and that the DB record has a non-empty `thumbnail` field.
 
 ---
 
 ## Task 10: TypeScript Strict Mode
 
 **Severity:** LOW (deferred from Iteration 2)
-**Finding:** `tsconfig.app.json` lacks `strict: true`. 18+ instances of `any` type throughout frontend code.
+**Finding:** `tsconfig.app.json` lacks `strict: true`. 18+ instances of `any` type throughout frontend code, primarily in `api.ts` and Svelte component props.
+
+> **Note:** This task is **outline-only**. The exact type errors depend on the state of the codebase when this task is started. Run `svelte-check` to enumerate errors before writing fixes.
 
 **Files:**
-- Modify: `frontend/tsconfig.app.json`
+- Modify: `frontend/tsconfig.app.json` (enable strict)
 - Modify: `frontend/src/lib/api.ts` (replace `any` with interfaces)
-- Modify: Various `.svelte` files (fix type errors)
+- Modify: Various `.svelte` files (fix resulting type errors)
+- Test: `npx svelte-check` must pass with zero errors
 
-**Implementation notes:**
-- Enable `strict: true` in tsconfig.app.json
-- Define response interfaces in `api.ts` for all API endpoints
-- Replace `any` with proper types throughout
-- Run `npx svelte-check` to find all remaining type errors
+**Implementation approach:**
+1. Define response interfaces in `api.ts` matching the Go model structs:
+   ```typescript
+   interface Catch { id: number; user_id: number; species_name?: string; ... }
+   interface Species { id: number; name: string; category: string; }
+   interface Trip { id: number; name: string; started_at: string; ... }
+   interface UserSettings { theme: string; units: string; species_filter: string; }
+   interface Stats { total_catches: number; ... }
+   ```
+2. Replace `any` with concrete types in all `request<T>()` calls
+3. Enable `"strict": true` in `tsconfig.app.json`
+4. Run `npx svelte-check --tsconfig ./tsconfig.app.json` and fix all errors
+5. Verify `npm run build` succeeds
 
 ---
 
@@ -837,16 +975,31 @@ This task requires careful testing with real image files. Plan specific test app
 **Severity:** LOW (deferred from Iteration 2)
 **Finding:** No CSP header. Requires careful configuration to allow MapLibre GL tile loading, inline styles from MapLibre, and the Open-Meteo weather API.
 
-**Files:**
-- Modify: `internal/middleware/security.go`
-- Modify: `internal/middleware/security_test.go`
+> **Note:** This task is **outline-only**. CSP is notoriously fragile — a single missing source directive breaks the entire page. Implementation requires iterative testing in both dev mode and production.
 
-**Implementation notes:**
-- Allow `*.tile.openstreetmap.org` for map tiles
-- Allow `api.open-meteo.com` for weather
-- Allow `'unsafe-inline'` for styles (MapLibre injects inline styles)
-- Allow `blob:` for MapLibre WebGL
-- Test thoroughly in both dev mode and production
+**Files:**
+- Modify: `internal/middleware/security.go` (add CSP header)
+- Modify: `internal/middleware/security_test.go` (extend)
+
+**Implementation approach:**
+
+The CSP header needs to allow:
+- `default-src 'self'`
+- `script-src 'self'` (all scripts are bundled by Vite)
+- `style-src 'self' 'unsafe-inline'` (MapLibre injects inline styles for markers/popups)
+- `img-src 'self' data: blob: https://*.tile.openstreetmap.org` (map tiles, data URIs for markers)
+- `connect-src 'self' https://*.tile.openstreetmap.org https://api.open-meteo.com` (tile fetches, weather API)
+- `worker-src 'self' blob:` (MapLibre uses Web Workers for rendering)
+- `font-src 'self'`
+
+**Test approach:**
+1. Add CSP header to `SecurityHeaders` middleware
+2. Unit test: verify the header is present and contains expected directives
+3. Manual test: load the app in Chrome DevTools, check Console for CSP violations
+4. Verify: map tiles load, markers display, weather popup works, photo uploads work
+5. If violations appear, add the specific source to the policy and re-test
+
+**Warning:** `'unsafe-inline'` for styles is a known trade-off. MapLibre's inline style injection is fundamental to how it works. A future improvement could use CSP nonces, but that requires server-side nonce generation per request.
 
 ---
 

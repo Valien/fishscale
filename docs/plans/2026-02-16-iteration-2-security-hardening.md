@@ -1575,7 +1575,7 @@ These items were identified in the audit but are lower priority. They are tracke
 - **Content-Security-Policy header:** Requires careful configuration to allow MapLibre GL tile loading, inline styles, etc. Needs dedicated testing.
 
 Additional findings added to Iteration 3:
-- **Photo auth gap (HIGH):** `GET /photos/*` has no authentication middleware
+- **Photo ownership gap (MEDIUM):** `GET /photos/*` has auth but no per-user ownership check
 - **Docker hardening (HIGH):** Container runs as root, no HEALTHCHECK, unpinned base images
 - **CI/CD pipeline (HIGH):** No GitHub Actions, no golangci-lint
 - **Frontend testing (HIGH):** No Vitest or any test framework
