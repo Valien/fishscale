@@ -223,7 +223,7 @@ The most important screen in the app. Optimized for speed on the water.
 **Quick fields (shown immediately):**
 - Date/time set to now, editable
 - GPS location auto-detected, tap to adjust pin on map
-- Species: searchable autocomplete from species list (custom touch-friendly dropdown, not native datalist)
+- Species: freeform text field with HTML5 datalist autocomplete from user's catch history (frequency-sorted)
 - Bait/Lure: autocomplete from user's history
 - Kept / Released: toggle
 - Photo: optional camera/file picker button within the form (uses `accept="image/*" capture="environment"` for native camera on mobile)
@@ -240,10 +240,10 @@ The most important screen in the app. Optimized for speed on the water.
 **Key UX decisions:**
 - Photo is optional, not the entry point. Camera/file picker is a button in the form, not the first thing shown. This avoids blocking quick logging when you just want to record a catch fast.
 - Auto-fill aggressively. GPS, time, and weather are pre-populated.
-- Autocomplete from history. Bait/lure and gear fields learn from previous entries.
+- Autocomplete from history. Species, bait/lure, and gear fields learn from previous entries.
 - Two-tier form. Quick save needs only species + bait + kept/released. Everything else is behind "More Detail."
 - Save is always visible. You can save with just auto-filled data if in a rush.
-- Species dropdown must work on iOS Safari. Uses `ontouchend` on dropdown items (fires reliably on finger lift), `onmousedown` for desktop, and `onblur` with a 200ms delay on the input for dismiss. A `cancelDismiss` on `ontouchstart` prevents the blur timer from hiding the dropdown before touch completes. No backdrop overlay (caused z-index stacking issues on Safari). The `justSelected` flag is a plain `let` (not `$state`) to avoid Svelte 5 `$effect` re-trigger loops.
+- Species field uses native HTML5 datalist for maximum reliability. Freeform text input with autocomplete suggestions from user's catch history, sorted by frequency. No custom dropdown code - browser-native behavior works flawlessly on all platforms including iOS Safari.
 
 ### Map View
 
@@ -439,6 +439,6 @@ Quick capture list for future work. Move items to "Future Considerations" once s
 - [x] ~~Determine whether CI/CD with GitHub Actions is needed~~ (Not needed - deployments/integration/testing handled locally)
 - [ ] Catch log entries should be clickable/editable — tap to view full catch details, edit fields inline
 - [ ] Redo bottom nav icons (map, log, stats, settings) — current icons need improvement
-- [ ] Investigate species dropdown — still broken, may be overcomplicating it. Look for simpler alternatives or remove entirely for now
+- [x] ~~Investigate species dropdown~~ (Completed 2026-02-17: replaced with native datalist, removed species table, see species-field-redesign.md)
 - [ ] Fish-log page should remember user's location and auto-update without prompting
 - [ ] Investigate cancel button on fish-log page — may not be working
