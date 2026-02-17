@@ -183,7 +183,6 @@
       <input
         type="file"
         accept="image/*"
-        capture="environment"
         multiple
         bind:this={photoInput}
         onchange={handlePhotoSelect}
