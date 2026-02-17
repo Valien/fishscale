@@ -41,7 +41,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, store storage.Store, authMiddlew
 
 	catches := handler.NewCatchHandler(db, store)
 	trips := handler.NewTripHandler(db)
-	species := handler.NewSpeciesHandler(db)
+	autocomplete := handler.NewAutocompleteHandler(db)
 	photos := handler.NewPhotoHandler(db, store)
 	settings := handler.NewSettingsHandler(db)
 	weather := handler.NewWeatherHandler()
@@ -64,10 +64,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, store storage.Store, authMiddlew
 			r.Put("/{id}", trips.Update)
 			r.Delete("/{id}", trips.Delete)
 		})
-		r.Route("/species", func(r chi.Router) {
-			r.Get("/", species.List)
-			r.Post("/", species.Create)
-		})
+		r.Get("/autocomplete/species", autocomplete.Species)
 		r.Delete("/photos/{id}", photos.Delete)
 		r.Get("/settings", settings.Get)
 		r.Put("/settings", settings.Update)

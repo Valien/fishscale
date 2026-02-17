@@ -26,9 +26,8 @@ export const api = {
         r.json(),
       ),
   },
-  species: {
-    list: (q?: string) => request<any[]>(`/species${q ? `?q=${encodeURIComponent(q)}` : ''}`),
-    create: (data: any) => request<any>('/species', { method: 'POST', body: JSON.stringify(data) }),
+  autocomplete: {
+    species: () => request<string[]>('/autocomplete/species'),
   },
   weather: {
     get: (lat: number, lon: number) => request<any>(`/weather?lat=${lat}&lon=${lon}`),

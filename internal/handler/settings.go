@@ -30,10 +30,9 @@ func (h *SettingsHandler) Get(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Return defaults if no settings exist
 		settings = model.UserSettings{
-			UserID:        user.ID,
-			Theme:         "system",
-			Units:         "imperial",
-			SpeciesFilter: "all",
+			UserID: user.ID,
+			Theme:  "system",
+			Units:  "imperial",
 		}
 	}
 
@@ -41,9 +40,8 @@ func (h *SettingsHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 type updateSettingsRequest struct {
-	Theme         string `json:"theme"`
-	Units         string `json:"units"`
-	SpeciesFilter string `json:"species_filter"`
+	Theme string `json:"theme"`
+	Units string `json:"units"`
 }
 
 func (h *SettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -73,17 +71,10 @@ func (h *SettingsHandler) Update(w http.ResponseWriter, r *http.Request) {
 		req.Units = "imperial"
 	}
 
-	// Validate species filter
-	switch req.SpeciesFilter {
-	case "all", "freshwater", "saltwater":
-	default:
-		req.SpeciesFilter = "all"
-	}
-
-	_, err := h.db.ExecContext(r.Context(), `INSERT INTO user_settings (user_id, theme, units, species_filter, updated_at)
-		VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-		ON CONFLICT(user_id) DO UPDATE SET theme=?, units=?, species_filter=?, updated_at=CURRENT_TIMESTAMP`,
-		user.ID, req.Theme, req.Units, req.SpeciesFilter, req.Theme, req.Units, req.SpeciesFilter)
+	_, err := h.db.ExecContext(r.Context(), `INSERT INTO user_settings (user_id, theme, units, updated_at)
+		VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+		ON CONFLICT(user_id) DO UPDATE SET theme=?, units=?, updated_at=CURRENT_TIMESTAMP`,
+		user.ID, req.Theme, req.Units, req.Theme, req.Units)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to update settings")
 		return

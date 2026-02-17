@@ -1,16 +1,10 @@
 <script lang="ts">
   import { api } from '../api';
   import { loadCatches } from '../stores/catches';
-  import { settings } from '../stores/settings';
 
   let { onDone }: { onDone: () => void } = $props();
 
-  let speciesList = $state<any[]>([]);
-  let speciesQuery = $state('');
-  let filteredSpecies = $state<any[]>([]);
-  let showSpeciesDropdown = $state(false);
-  let justSelected = false;
-
+  let speciesSuggestions = $state<string[]>([]);
   let showMoreDetail = $state(false);
   let saving = $state(false);
   let error = $state('');
@@ -25,7 +19,6 @@
     latitude: null as number | null,
     longitude: null as number | null,
     location_name: '',
-    species_id: null as number | null,
     species_name: '',
     bait_or_lure: '',
     kept: false,
@@ -45,34 +38,11 @@
     humidity_pct: null as number | null,
   });
 
-  // Load species list
+  // Load species autocomplete suggestions from user's catch history
   $effect(() => {
-    api.species.list().then((s) => {
-      speciesList = s;
+    api.autocomplete.species().then((s) => {
+      speciesSuggestions = s;
     });
-  });
-
-  // Filter species on query change, respecting species_filter setting
-  $effect(() => {
-    if (justSelected) {
-      justSelected = false;
-      return;
-    }
-    const filter = $settings.species_filter || 'all';
-    if (speciesQuery.length > 0) {
-      filteredSpecies = speciesList
-        .filter((s) => {
-          const matchesQuery = s.name.toLowerCase().includes(speciesQuery.toLowerCase());
-          const matchesCategory = filter === 'all' || s.category === filter;
-          return matchesQuery && matchesCategory;
-        })
-        .slice(0, 8);
-      showSpeciesDropdown = filteredSpecies.length > 0;
-    } else {
-      showSpeciesDropdown = false;
-      form.species_id = null;
-      form.species_name = '';
-    }
   });
 
   // Get GPS location on mount
@@ -103,31 +73,6 @@
     }
   });
 
-  function selectSpecies(s: any, e?: Event) {
-    e?.preventDefault();
-    justSelected = true;
-    form.species_id = s.id;
-    form.species_name = s.name;
-    speciesQuery = s.name;
-    showSpeciesDropdown = false;
-  }
-
-  let dismissTimer: ReturnType<typeof setTimeout> | null = null;
-
-  function dismissDropdown() {
-    // Delay so touchend/mousedown on a dropdown item fires before we hide it
-    dismissTimer = setTimeout(() => {
-      showSpeciesDropdown = false;
-    }, 200);
-  }
-
-  function cancelDismiss() {
-    if (dismissTimer) {
-      clearTimeout(dismissTimer);
-      dismissTimer = null;
-    }
-  }
-
   function handlePhotoSelect(e: Event) {
     const input = e.target as HTMLInputElement;
     if (input.files) {
@@ -149,7 +94,7 @@
         latitude: form.latitude,
         longitude: form.longitude,
         location_name: form.location_name,
-        species_id: form.species_id,
+        species_name: form.species_name,
         bait_or_lure: form.bait_or_lure,
         kept: form.kept,
         length_in: form.length_in,
@@ -213,31 +158,19 @@
       {/if}
     </div>
 
-    <div class="form-group species-field">
+    <div class="form-group">
       <label>Species</label>
       <input
         type="text"
-        placeholder="Search species..."
-        bind:value={speciesQuery}
-        onfocus={() => {
-          if (speciesQuery.length > 0 && !justSelected) showSpeciesDropdown = true;
-        }}
-        onblur={dismissDropdown}
+        list="species-datalist"
+        placeholder="e.g. Largemouth Bass"
+        bind:value={form.species_name}
       />
-      {#if showSpeciesDropdown}
-        <div class="dropdown" ontouchstart={cancelDismiss}>
-          {#each filteredSpecies as s}
-            <button
-              class="dropdown-item"
-              ontouchend={(e) => selectSpecies(s, e)}
-              onmousedown={() => selectSpecies(s)}
-            >
-              {s.name}
-              <span class="chip">{s.category}</span>
-            </button>
-          {/each}
-        </div>
-      {/if}
+      <datalist id="species-datalist">
+        {#each speciesSuggestions as species}
+          <option value={species}></option>
+        {/each}
+      </datalist>
     </div>
 
     <div class="form-group">
@@ -371,42 +304,6 @@
   .coords {
     color: var(--text-secondary);
     font-size: 0.8rem;
-  }
-
-  .species-field {
-    position: relative;
-  }
-
-  .dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--card-bg);
-    border: 1px solid var(--card-border);
-    border-radius: 8px;
-    max-height: 200px;
-    overflow-y: auto;
-    z-index: 10;
-    box-shadow: 0 4px 12px var(--shadow);
-  }
-
-  .dropdown-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-    padding: 10px 12px;
-    border: none;
-    background: none;
-    color: var(--text);
-    cursor: pointer;
-    text-align: left;
-    font-size: 0.9rem;
-  }
-
-  .dropdown-item:hover {
-    background: var(--bg-secondary);
   }
 
   .photo-previews {

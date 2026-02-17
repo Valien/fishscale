@@ -4,21 +4,18 @@
 
   let currentTheme = $state('system');
   let currentUnits = $state('imperial');
-  let currentSpeciesFilter = $state('all');
   let saved = $state(false);
 
   $effect(() => {
     const s = $settings;
     currentTheme = s.theme;
     currentUnits = s.units;
-    currentSpeciesFilter = s.species_filter;
   });
 
   async function save() {
     await updateSettings({
       theme: currentTheme,
       units: currentUnits,
-      species_filter: currentSpeciesFilter,
     });
     saved = true;
     setTimeout(() => (saved = false), 2000);
@@ -47,19 +44,6 @@
         <label class="radio-label">
           <input type="radio" name="units" value={unit} bind:group={currentUnits} />
           <span>{unit.charAt(0).toUpperCase() + unit.slice(1)}</span>
-        </label>
-      {/each}
-    </div>
-  </div>
-
-  <div class="card">
-    <h2 class="section-title">Species Filter</h2>
-    <p class="section-desc">Choose which species appear in the dropdown when logging a catch.</p>
-    <div class="radio-group">
-      {#each [['all', 'All'], ['freshwater', 'Freshwater'], ['saltwater', 'Saltwater']] as [value, label]}
-        <label class="radio-label">
-          <input type="radio" name="species_filter" {value} bind:group={currentSpeciesFilter} />
-          <span>{label}</span>
         </label>
       {/each}
     </div>
@@ -100,11 +84,5 @@
 
   .radio-label input[type='radio'] {
     width: auto;
-  }
-
-  .section-desc {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    margin-bottom: 12px;
   }
 </style>

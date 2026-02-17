@@ -50,7 +50,7 @@ func TestRateLimiting(t *testing.T) {
 	// Send 101 rapid requests (limit should be 100/min)
 	var lastCode int
 	for i := 0; i < 101; i++ {
-		req := httptest.NewRequest("GET", "/api/v1/species", nil)
+		req := httptest.NewRequest("GET", "/api/v1/autocomplete/species", nil)
 		rec := httptest.NewRecorder()
 		router.ServeHTTP(rec, req)
 		lastCode = rec.Code

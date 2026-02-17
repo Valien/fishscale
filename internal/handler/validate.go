@@ -46,6 +46,7 @@ func validateCatchRequest(req *model.CreateCatchRequest) error {
 		val  string
 		max  int
 	}{
+		{"species_name", req.SpeciesName, maxShortFieldLen},
 		{"location_name", req.LocationName, maxTextFieldLen},
 		{"bait_or_lure", req.BaitOrLure, maxShortFieldLen},
 		{"rod_setup", req.RodSetup, maxShortFieldLen},
