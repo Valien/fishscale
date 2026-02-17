@@ -60,11 +60,14 @@
 <div class="page">
   <h1 class="page-title">Catch Details</h1>
 
+  {#if !catchData}
+    <div class="empty-state"><p>No catch data available</p></div>
+  {:else}
   <!-- Photo Gallery -->
   {#if catchData.photos && catchData.photos.length > 0}
     <div class="photo-gallery">
       {#each catchData.photos as photo}
-        <button class="photo-thumb" onclick={() => viewPhoto(photo.url)} type="button">
+        <button class="photo-thumb" onclick={() => viewPhoto(photo.url)} type="button" aria-label="View photo">
           <img src={photo.url} alt="Catch photo" />
         </button>
       {/each}
@@ -173,17 +176,18 @@
 
   <!-- Action Buttons -->
   <div class="action-buttons">
-    <button class="btn btn-outline" onclick={onBack}>Back</button>
-    <button class="btn btn-primary" onclick={onEdit}>Edit</button>
+    <button class="btn btn-outline" onclick={onBack} type="button">Back</button>
+    <button class="btn btn-primary" onclick={onEdit} type="button">Edit</button>
   </div>
-  <button class="delete-link" onclick={handleDelete}>Delete</button>
+  <button class="delete-link" onclick={handleDelete} type="button" aria-label="Delete this catch">Delete</button>
+  {/if}
 </div>
 
 <!-- Photo Modal -->
 {#if showPhotoModal}
-  <div class="photo-modal" onclick={closePhotoModal}>
+  <div class="photo-modal" onclick={closePhotoModal} role="dialog" aria-label="Photo viewer">
     <div class="photo-modal-content" onclick={(e) => e.stopPropagation()}>
-      <button class="photo-modal-close" onclick={closePhotoModal}>×</button>
+      <button class="photo-modal-close" onclick={closePhotoModal} type="button">×</button>
       <img src={selectedPhotoUrl} alt="Full size catch photo" />
     </div>
   </div>
