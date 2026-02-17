@@ -41,15 +41,36 @@
         box-shadow: 0 1px 4px rgba(0,0,0,0.3);
       `;
 
-      const popup = new maplibregl.Popup({ offset: 10 }).setHTML(`
-        <div style="padding:4px;font-family:sans-serif;font-size:0.85rem;">
-          <strong>${c.species_name || 'Unknown'}</strong><br/>
-          ${c.location_name || ''}<br/>
-          <small>${new Date(c.caught_at).toLocaleDateString()}</small>
-          ${c.weight_lb ? `<br/><small>${c.weight_lb} lb</small>` : ''}
-          ${c.bait_or_lure ? `<br/><small>${c.bait_or_lure}</small>` : ''}
-        </div>
-      `);
+      const popupEl = document.createElement('div');
+      popupEl.style.cssText = 'padding:4px;font-family:sans-serif;font-size:0.85rem;';
+
+      const name = document.createElement('strong');
+      name.textContent = c.species_name || 'Unknown';
+      popupEl.appendChild(name);
+
+      popupEl.appendChild(document.createElement('br'));
+      popupEl.appendChild(document.createTextNode(c.location_name || ''));
+      popupEl.appendChild(document.createElement('br'));
+
+      const date = document.createElement('small');
+      date.textContent = new Date(c.caught_at).toLocaleDateString();
+      popupEl.appendChild(date);
+
+      if (c.weight_lb) {
+        popupEl.appendChild(document.createElement('br'));
+        const weight = document.createElement('small');
+        weight.textContent = `${c.weight_lb} lb`;
+        popupEl.appendChild(weight);
+      }
+
+      if (c.bait_or_lure) {
+        popupEl.appendChild(document.createElement('br'));
+        const bait = document.createElement('small');
+        bait.textContent = c.bait_or_lure;
+        popupEl.appendChild(bait);
+      }
+
+      const popup = new maplibregl.Popup({ offset: 10 }).setDOMContent(popupEl);
 
       const marker = new maplibregl.Marker({ element: el })
         .setLngLat([c.longitude, c.latitude])

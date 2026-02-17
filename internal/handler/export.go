@@ -34,7 +34,7 @@ func (h *ExportHandler) Export(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var catches []model.Catch
-	err := h.db.Select(&catches, `SELECT c.*, COALESCE(s.name, '') as species_name
+	err := h.db.SelectContext(r.Context(), &catches, `SELECT c.*, COALESCE(s.name, '') as species_name
 		FROM catches c
 		LEFT JOIN species s ON c.species_id = s.id
 		WHERE c.user_id = ?

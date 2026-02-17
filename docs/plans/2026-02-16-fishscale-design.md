@@ -359,6 +359,44 @@ Everything lives under `/data`:
 
 A single `tar` of the Docker volume or a scheduled `sqlite3 .backup` + `rsync` covers it.
 
+## Security
+
+### Authentication & Authorization
+- All requests authenticated via Tailscale WhoIs middleware (network is the auth boundary)
+- Every database query scoped to `user_id` from authenticated context — no cross-user access
+- Dev mode uses a hardcoded user (ID 1) — development only, never production
+- Config validation requires `TS_AUTHKEY` in production mode (fails fast at startup)
+
+### Request Security
+- Security headers on all responses: X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy, Permissions-Policy
+- Rate limiting: 100 requests/minute per IP via go-chi/httprate
+- Request context propagated to all database calls — canceled client connections abort queries
+- Input validation: string length limits (200 short / 2000 text / 5000 notes), coordinate range checks, positive numeric enforcement
+- All handler errors checked and returned as proper HTTP status codes (no silently ignored errors)
+
+### File Upload Security
+- MIME type validated via magic bytes (first 512 bytes), not file extension
+- Allowed types: image/jpeg, image/png, image/gif, image/webp
+- File extensions forced to match detected MIME type (not user-supplied)
+- Maximum upload size: 10MB per multipart form
+- Temporary multipart files cleaned up via defer RemoveAll()
+
+### Frontend Security
+- Map popups use setDOMContent() with textContent (not setHTML) to prevent XSS
+- No localStorage/sessionStorage token storage (Tailscale handles auth at network layer)
+- No {@html} directives in Svelte components
+
+### Database Security
+- All queries use parameterized placeholders (?) — no SQL string concatenation
+- SQLite connection pool limited to 2 max open / 1 idle connection
+- Foreign key constraints enabled, cascade deletes configured
+- WAL mode with 5-second busy timeout
+- Indexes on all foreign key columns for efficient joins and filtering
+
+### Caching
+- index.html: Cache-Control no-cache, no-store, must-revalidate (always fresh)
+- /assets/*: Cache-Control public, max-age=31536000, immutable (Vite content-hashed)
+
 ## Future Considerations (v2+)
 
 These are explicitly out of scope for v1 but the architecture is designed to accommodate them:
@@ -370,3 +408,18 @@ These are explicitly out of scope for v1 but the architecture is designed to acc
 - **Alternative map providers:** Map provider is abstracted behind an interface. Swap MapLibre for Google Maps or others.
 - **Rich analytics:** Weather correlation, heatmaps, moon phase tracking, seasonal pattern analysis. The data model already captures enough to support this.
 - **Import from CSV/JSON:** v1 supports export only. Import can be added using the same format.
+
+## Ideas & Enhancements
+
+Quick capture list for future work. Move items to "Future Considerations" once scoped, or into an iteration plan when ready to build.
+
+- [ ] Photo picker should open device photo album by default instead of camera, so users can upload pictures already taken (remove `capture="environment"` from file input, keep `accept="image/*"`)
+- [ ] Run security iteration plan 3
+- [ ] Determine whether CI/CD with GitHub Actions is needed
+- [ ] Catch log entries should be clickable/editable — tap to view full catch details, edit fields inline
+- [ ] Redo bottom nav icons (map, log, stats, settings) — current icons need improvement
+- [ ] Investigate species dropdown — still broken, may be overcomplicating it. Look for simpler alternatives or remove entirely for now
+- [ ] Fish-log page should remember user's location and auto-update without prompting
+- [ ] Investigate cancel button on fish-log page — may not be working
+- [ ]
+- [ ]

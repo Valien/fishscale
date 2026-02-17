@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
+	"net"
 	"net/http"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"tailscale.com/tsnet"
 
@@ -14,7 +19,13 @@ import (
 )
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	cfg := config.Load()
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("invalid configuration: %v", err)
+	}
 
 	db, err := database.Open(cfg.DBPath)
 	if err != nil {
@@ -25,9 +36,11 @@ func main() {
 	store := storage.NewLocalStore(cfg.PhotoDir)
 
 	if cfg.DevMode {
-		router := server.NewRouter(cfg, db, store, nil)
 		log.Println("DEV MODE: listening on http://localhost:8080")
-		log.Fatal(http.ListenAndServe(":8080", router))
+		if err := runDevServer(ctx, ":8080"); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server error: %v", err)
+		}
+		log.Println("server stopped gracefully")
 	} else {
 		ts := &tsnet.Server{
 			Hostname: cfg.TSHostname,
@@ -50,7 +63,49 @@ func main() {
 		}
 		defer ln.Close()
 
+		srv := &http.Server{Handler: router}
+
+		go func() {
+			<-ctx.Done()
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			srv.Shutdown(shutdownCtx)
+		}()
+
 		log.Printf("fishscale available at https://%s.<tailnet>.ts.net", cfg.TSHostname)
-		log.Fatal(http.Serve(ln, router))
+		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server error: %v", err)
+		}
+		log.Println("server stopped gracefully")
 	}
+}
+
+// runDevServer starts an HTTP server on addr that shuts down when ctx is canceled.
+func runDevServer(ctx context.Context, addr string) error {
+	cfg := config.Load()
+
+	db, err := database.Open(cfg.DBPath)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	store := storage.NewLocalStore(cfg.PhotoDir)
+	router := server.NewRouter(cfg, db, store, nil)
+
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return err
+	}
+
+	srv := &http.Server{Handler: router}
+
+	go func() {
+		<-ctx.Done()
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		srv.Shutdown(shutdownCtx)
+	}()
+
+	return srv.Serve(ln)
 }

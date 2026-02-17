@@ -23,6 +23,10 @@ func Open(dbPath string) (*sqlx.DB, error) {
 		return nil, err
 	}
 
+	// SQLite supports limited concurrency. Set conservative pool limits.
+	db.SetMaxOpenConns(2)
+	db.SetMaxIdleConns(1)
+
 	if err := migrate(db); err != nil {
 		db.Close()
 		return nil, err

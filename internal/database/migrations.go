@@ -77,7 +77,9 @@ func migrate(db *sqlx.DB) error {
 	CREATE INDEX IF NOT EXISTS idx_catches_user_id    ON catches(user_id);
 	CREATE INDEX IF NOT EXISTS idx_catches_caught_at  ON catches(caught_at);
 	CREATE INDEX IF NOT EXISTS idx_catches_species_id ON catches(species_id);
+	CREATE INDEX IF NOT EXISTS idx_catches_trip_id    ON catches(trip_id);
 	CREATE INDEX IF NOT EXISTS idx_photos_catch_id    ON photos(catch_id);
+	CREATE INDEX IF NOT EXISTS idx_trips_user_id      ON trips(user_id);
 	`
 
 	if _, err := db.Exec(schema); err != nil {

@@ -24,7 +24,7 @@ func TailscaleAuth(lc *tailscale.LocalClient, db *sqlx.DB) func(http.Handler) ht
 			displayName := whois.UserProfile.DisplayName
 
 			// Upsert user
-			_, err = db.Exec(`INSERT INTO users (tailscale_id, display_name) VALUES (?, ?)
+			_, err = db.ExecContext(r.Context(), `INSERT INTO users (tailscale_id, display_name) VALUES (?, ?)
 				ON CONFLICT(tailscale_id) DO UPDATE SET display_name = ?`,
 				tailscaleID, displayName, displayName)
 			if err != nil {
@@ -34,7 +34,7 @@ func TailscaleAuth(lc *tailscale.LocalClient, db *sqlx.DB) func(http.Handler) ht
 			}
 
 			var user model.User
-			err = db.Get(&user, "SELECT * FROM users WHERE tailscale_id = ?", tailscaleID)
+			err = db.GetContext(r.Context(), &user, "SELECT * FROM users WHERE tailscale_id = ?", tailscaleID)
 			if err != nil {
 				log.Printf("get user error: %v", err)
 				http.Error(w, "internal error", http.StatusInternalServerError)
