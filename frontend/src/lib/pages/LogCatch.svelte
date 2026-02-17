@@ -2,12 +2,21 @@
   import { api } from '../api';
   import { loadCatches } from '../stores/catches';
 
-  let { onDone }: { onDone: () => void } = $props();
+  let {
+    catchId = undefined,
+    mode = 'create',
+    onDone,
+  }: {
+    catchId?: number;
+    mode?: 'create' | 'edit';
+    onDone: () => void;
+  } = $props();
 
   let speciesSuggestions = $state<string[]>([]);
   let showMoreDetail = $state(false);
   let saving = $state(false);
   let error = $state('');
+  let loadingCatch = $state(false);
 
   let photoFiles = $state<File[]>([]);
   let photoInput: HTMLInputElement;
@@ -73,6 +82,42 @@
     }
   });
 
+  // Load existing catch data in edit mode
+  $effect(() => {
+    if (mode === 'edit' && catchId) {
+      loadingCatch = true;
+      api.catches.get(catchId).then((data) => {
+        form.caught_at = new Date(new Date(data.caught_at).getTime() - new Date().getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16);
+        form.latitude = data.latitude;
+        form.longitude = data.longitude;
+        form.location_name = data.location_name || '';
+        form.species_name = data.species_name || '';
+        form.bait_or_lure = data.bait_or_lure || '';
+        form.kept = data.kept || false;
+        form.length_in = data.length_in;
+        form.weight_lb = data.weight_lb;
+        form.rod_setup = data.rod_setup || '';
+        form.line_info = data.line_info || '';
+        form.hook_size = data.hook_size || '';
+        form.water_temp_f = data.water_temp_f;
+        form.water_clarity = data.water_clarity || '';
+        form.notes = data.notes || '';
+        form.air_temp_f = data.air_temp_f;
+        form.wind_mph = data.wind_mph;
+        form.wind_dir = data.wind_dir || '';
+        form.conditions = data.conditions || '';
+        form.pressure_mb = data.pressure_mb;
+        form.humidity_pct = data.humidity_pct;
+        loadingCatch = false;
+      }).catch(() => {
+        error = 'Failed to load catch data';
+        loadingCatch = false;
+      });
+    }
+  });
+
   function handlePhotoSelect(e: Event) {
     const input = e.target as HTMLInputElement;
     if (input.files) {
@@ -89,40 +134,70 @@
     saving = true;
     error = '';
     try {
-      const created = await api.catches.create({
-        caught_at: new Date(form.caught_at).toISOString(),
-        latitude: form.latitude,
-        longitude: form.longitude,
-        location_name: form.location_name,
-        species_name: form.species_name,
-        bait_or_lure: form.bait_or_lure,
-        kept: form.kept,
-        length_in: form.length_in,
-        weight_lb: form.weight_lb,
-        rod_setup: form.rod_setup,
-        line_info: form.line_info,
-        hook_size: form.hook_size,
-        water_temp_f: form.water_temp_f,
-        water_clarity: form.water_clarity,
-        notes: form.notes,
-        air_temp_f: form.air_temp_f,
-        wind_mph: form.wind_mph,
-        wind_dir: form.wind_dir,
-        conditions: form.conditions,
-        pressure_mb: form.pressure_mb,
-        humidity_pct: form.humidity_pct,
-      });
+      if (mode === 'edit' && catchId) {
+        // Update existing catch
+        await api.catches.update(catchId, {
+          caught_at: new Date(form.caught_at).toISOString(),
+          latitude: form.latitude,
+          longitude: form.longitude,
+          location_name: form.location_name,
+          species_name: form.species_name,
+          bait_or_lure: form.bait_or_lure,
+          kept: form.kept,
+          length_in: form.length_in,
+          weight_lb: form.weight_lb,
+          rod_setup: form.rod_setup,
+          line_info: form.line_info,
+          hook_size: form.hook_size,
+          water_temp_f: form.water_temp_f,
+          water_clarity: form.water_clarity,
+          notes: form.notes,
+          air_temp_f: form.air_temp_f,
+          wind_mph: form.wind_mph,
+          wind_dir: form.wind_dir,
+          conditions: form.conditions,
+          pressure_mb: form.pressure_mb,
+          humidity_pct: form.humidity_pct,
+        });
+        await loadCatches();
+        onDone();
+      } else {
+        // Create new catch (existing code)
+        const created = await api.catches.create({
+          caught_at: new Date(form.caught_at).toISOString(),
+          latitude: form.latitude,
+          longitude: form.longitude,
+          location_name: form.location_name,
+          species_name: form.species_name,
+          bait_or_lure: form.bait_or_lure,
+          kept: form.kept,
+          length_in: form.length_in,
+          weight_lb: form.weight_lb,
+          rod_setup: form.rod_setup,
+          line_info: form.line_info,
+          hook_size: form.hook_size,
+          water_temp_f: form.water_temp_f,
+          water_clarity: form.water_clarity,
+          notes: form.notes,
+          air_temp_f: form.air_temp_f,
+          wind_mph: form.wind_mph,
+          wind_dir: form.wind_dir,
+          conditions: form.conditions,
+          pressure_mb: form.pressure_mb,
+          humidity_pct: form.humidity_pct,
+        });
 
-      if (photoFiles.length > 0 && created?.id) {
-        const formData = new FormData();
-        for (const file of photoFiles) {
-          formData.append('photos', file);
+        if (photoFiles.length > 0 && created?.id) {
+          const formData = new FormData();
+          for (const file of photoFiles) {
+            formData.append('photos', file);
+          }
+          await api.catches.addPhotos(created.id, formData);
         }
-        await api.catches.addPhotos(created.id, formData);
-      }
 
-      await loadCatches();
-      onDone();
+        await loadCatches();
+        onDone();
+      }
     } catch (e: any) {
       error = e.message || 'Failed to save catch';
     } finally {
@@ -132,13 +207,16 @@
 </script>
 
 <div class="page">
-  <h1 class="page-title">Log Catch</h1>
+  <h1 class="page-title">{mode === 'edit' ? 'Edit Catch' : 'Log Catch'}</h1>
 
   {#if error}
     <div class="error-banner">{error}</div>
   {/if}
 
-  <div class="card">
+  {#if loadingCatch}
+    <div class="empty-state"><p>Loading catch data...</p></div>
+  {:else}
+    <div class="card">
     <div class="form-group">
       <label>Date & Time</label>
       <input type="datetime-local" bind:value={form.caught_at} />
@@ -288,6 +366,7 @@
       {saving ? 'Saving...' : 'Save Catch'}
     </button>
   </div>
+  {/if}
 </div>
 
 <style>
