@@ -1,5 +1,8 @@
 <script lang="ts">
   import { catches, loading, loadCatches, deleteCatch } from '../stores/catches';
+  import CatchDetail from './CatchDetail.svelte';
+  import LogCatch from './LogCatch.svelte';
+  import { api } from '../api';
 
   let { onEdit }: { onEdit: (id: number) => void } = $props();
   let search = $state('');
@@ -20,66 +23,115 @@
     }),
   );
 
-  async function handleDelete(id: number) {
-    if (confirm('Delete this catch?')) {
-      await deleteCatch(id);
+  // View state management
+  let view = $state<'list' | 'detail' | 'edit'>('list');
+  let selectedCatchId = $state<number | null>(null);
+  let selectedCatch = $state<any | null>(null);
+  let loadingDetail = $state(false);
+
+  async function fetchCatch(id: number) {
+    loadingDetail = true;
+    try {
+      const data = await api.catches.get(id);
+      selectedCatch = data;
+      view = 'detail';
+    } catch (err) {
+      alert('Failed to load catch details');
+      view = 'list';
+    } finally {
+      loadingDetail = false;
     }
+  }
+
+  function handleViewDetail(id: number) {
+    selectedCatchId = id;
+    fetchCatch(id);
+  }
+
+  function handleBackToList() {
+    view = 'list';
+    selectedCatchId = null;
+    selectedCatch = null;
+    loadCatches(); // Refresh list
+  }
+
+  function handleEditCatch() {
+    view = 'edit';
+  }
+
+  function handleEditDone() {
+    if (selectedCatchId) {
+      fetchCatch(selectedCatchId); // Reload catch to show updated data
+    }
+  }
+
+  async function handleDeleteCatch(id: number) {
+    await deleteCatch(id);
+    handleBackToList();
   }
 </script>
 
 <div class="page">
-  <h1 class="page-title">Catch Log</h1>
+  {#if view === 'list'}
+    <h1 class="page-title">Catch Log</h1>
 
-  <div class="form-group">
-    <input type="text" placeholder="Search catches..." bind:value={search} />
-  </div>
-
-  {#if $loading}
-    <div class="empty-state"><p>Loading...</p></div>
-  {:else if filtered.length === 0}
-    <div class="empty-state">
-      <p>No catches yet</p>
-      <p>Hit the + button to log your first catch!</p>
+    <div class="form-group">
+      <input type="text" placeholder="Search catches..." bind:value={search} />
     </div>
-  {:else}
-    {#each filtered as c (c.id)}
-      <div class="card catch-card" onclick={() => onEdit(c.id)}>
-        <div class="catch-header">
-          <span class="catch-species">{c.species_name || 'Unknown Species'}</span>
-          <span class="catch-date">{new Date(c.caught_at).toLocaleDateString()}</span>
-        </div>
-        <div class="catch-details">
-          {#if c.location_name}
-            <span>{c.location_name}</span>
-          {/if}
-          {#if c.weight_lb}
-            <span>{c.weight_lb} lb</span>
-          {/if}
-          {#if c.length_in}
-            <span>{c.length_in}"</span>
-          {/if}
-          {#if c.bait_or_lure}
-            <span class="chip chip-primary">{c.bait_or_lure}</span>
-          {/if}
-          {#if c.kept}
-            <span class="chip">Kept</span>
-          {/if}
-        </div>
-        {#if c.conditions}
-          <div class="catch-weather">
-            {c.conditions}
-            {#if c.air_temp_f}{c.air_temp_f.toFixed(0)}°F{/if}
-          </div>
-        {/if}
-        <button
-          class="delete-btn"
-          onclick={(e: MouseEvent) => {
-            e.stopPropagation();
-            handleDelete(c.id);
-          }}>Delete</button
-        >
+
+    {#if $loading}
+      <div class="empty-state"><p>Loading...</p></div>
+    {:else if filtered.length === 0}
+      <div class="empty-state">
+        <p>No catches yet</p>
+        <p>Hit the + button to log your first catch!</p>
       </div>
-    {/each}
+    {:else}
+      {#each filtered as c (c.id)}
+        <div class="card catch-card" onclick={() => handleViewDetail(c.id)}>
+          <div class="catch-header">
+            <span class="catch-species">{c.species_name || 'Unknown Species'}</span>
+            <span class="catch-date">{new Date(c.caught_at).toLocaleDateString()}</span>
+          </div>
+          <div class="catch-details">
+            {#if c.location_name}
+              <span>{c.location_name}</span>
+            {/if}
+            {#if c.weight_lb}
+              <span>{c.weight_lb} lb</span>
+            {/if}
+            {#if c.length_in}
+              <span>{c.length_in}"</span>
+            {/if}
+            {#if c.bait_or_lure}
+              <span class="chip chip-primary">{c.bait_or_lure}</span>
+            {/if}
+            {#if c.kept}
+              <span class="chip">Kept</span>
+            {/if}
+          </div>
+          {#if c.conditions}
+            <div class="catch-weather">
+              {c.conditions}
+              {#if c.air_temp_f}{c.air_temp_f.toFixed(0)}°F{/if}
+            </div>
+          {/if}
+        </div>
+      {/each}
+    {/if}
+  {:else if view === 'detail'}
+    {#if loadingDetail}
+      <div class="empty-state"><p>Loading...</p></div>
+    {:else if selectedCatch}
+      <CatchDetail
+        catch={selectedCatch}
+        onBack={handleBackToList}
+        onEdit={handleEditCatch}
+        onDelete={handleDeleteCatch}
+      />
+    {/if}
+  {:else if view === 'edit'}
+    <LogCatch catchId={selectedCatchId} mode="edit" onDone={handleEditDone} />
   {/if}
 </div>
 
@@ -122,21 +174,5 @@
     font-size: 0.8rem;
     color: var(--text-secondary);
     margin-top: 6px;
-  }
-
-  .delete-btn {
-    margin-top: 8px;
-    padding: 4px 12px;
-    background: transparent;
-    border: 1px solid var(--danger);
-    color: var(--danger);
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.8rem;
-  }
-
-  .delete-btn:hover {
-    background: var(--danger);
-    color: white;
   }
 </style>
