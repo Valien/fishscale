@@ -164,6 +164,21 @@ textarea {
   font-size: 0.9rem;
 }
 
+input[type='datetime-local'] {
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 10px 8px;
+}
+
+@media (max-width: 480px) {
+  input[type='datetime-local'] {
+    font-size: 0.75rem;
+    padding: 10px 6px;
+  }
+}
+
 input:focus,
 select:focus,
 textarea:focus {
