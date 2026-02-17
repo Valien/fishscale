@@ -2,6 +2,21 @@
   import { api } from '../api';
   import { loadCatches } from '../stores/catches';
 
+  const FISHING_GREETINGS = [
+    "Hey {name}! What did you catch today?",
+    "Welcome back, {name}! Let's log that monster!",
+    "Nice to see you, {name}! Ready to brag?",
+    "What's biting, {name}?",
+    "Reel 'em in, {name}!",
+    "Another one, {name}? You're on fire!",
+    "Tell us about it, {name}!",
+    "What'd you hook, {name}?",
+    "Time to record the catch, {name}!",
+    "Let's hear it, {name}! What's the story?",
+    "Back for more, {name}?",
+    "What treasure did you land, {name}?",
+  ];
+
   let {
     catchId = undefined,
     mode = 'create',
@@ -17,6 +32,7 @@
   let saving = $state(false);
   let error = $state('');
   let loadingCatch = $state(false);
+  let greeting = $state('Log Catch'); // fallback
 
   let photoFiles = $state<File[]>([]);
   let photoInput: HTMLInputElement;
@@ -118,6 +134,23 @@
     }
   });
 
+  // Fetch user and generate greeting
+  $effect(() => {
+    api.me
+      .get()
+      .then((user) => {
+        if (user.display_name) {
+          const firstName = user.display_name.split(' ')[0];
+          const randomGreeting =
+            FISHING_GREETINGS[Math.floor(Math.random() * FISHING_GREETINGS.length)];
+          greeting = randomGreeting.replace('{name}', firstName);
+        }
+      })
+      .catch(() => {
+        greeting = 'Log Catch'; // fallback on error
+      });
+  });
+
   function handlePhotoSelect(e: Event) {
     const input = e.target as HTMLInputElement;
     if (input.files) {
@@ -217,7 +250,7 @@
 </script>
 
 <div class="page">
-  <h1 class="page-title">{mode === 'edit' ? 'Edit Catch' : 'Log Catch'}</h1>
+  <h1 class="page-title">{mode === 'edit' ? 'Edit Catch' : greeting}</h1>
 
   {#if error}
     <div class="error-banner">{error}</div>
