@@ -280,8 +280,10 @@ Chronological list, most recent first. Each card shows thumbnail photo, species,
 # Stage 1: Build Svelte frontend
 FROM node:22-alpine AS frontend
 WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci
 COPY frontend/ .
-RUN npm ci && npm run build
+RUN npm run build
 
 # Stage 2: Build Go binary
 FROM golang:1.25-alpine AS backend
@@ -289,13 +291,17 @@ WORKDIR /app
 COPY go.* ./
 RUN go mod download
 COPY . .
-COPY --from=frontend /app/frontend/dist ./frontend/dist
-RUN go build -o fishscale ./cmd/fishscale
+COPY --from=frontend /app/frontend/dist ./internal/frontend/dist
+RUN CGO_ENABLED=0 go build -o fishscale ./cmd/fishscale
 
-# Stage 3: Minimal runtime
+# Stage 3: Minimal runtime (non-root)
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata && \
+    addgroup -S fishscale && adduser -S fishscale -G fishscale
 COPY --from=backend /app/fishscale /usr/local/bin/fishscale
+RUN mkdir -p /data/photos /data/tsnet-state && \
+    chown -R fishscale:fishscale /data
+USER fishscale
 VOLUME /data
 ENTRYPOINT ["fishscale"]
 ```
@@ -307,9 +313,11 @@ Final image: ~30-40MB.
 ```yaml
 services:
   fishscale:
-    image: fishscale:latest
+    build: .
     container_name: fishscale
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: 1.0
     volumes:
       - fishscale-data:/data
       - /dev/net/tun:/dev/net/tun
@@ -317,11 +325,16 @@ services:
       - NET_ADMIN
     environment:
       - TS_AUTHKEY=${TS_AUTHKEY}
-      - TS_HOSTNAME=fishscale
+      - TS_HOSTNAME=${TS_HOSTNAME:-fishscale}
       - TS_STATE_DIR=/data/tsnet-state
       - FISHSCALE_DB_PATH=/data/fish.db
       - FISHSCALE_PHOTO_DIR=/data/photos
-      - FISHSCALE_LOG_LEVEL=info
+      - FISHSCALE_LOG_LEVEL=${FISHSCALE_LOG_LEVEL:-info}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   fishscale-data:
@@ -364,6 +377,7 @@ A single `tar` of the Docker volume or a scheduled `sqlite3 .backup` + `rsync` c
 ### Authentication & Authorization
 - All requests authenticated via Tailscale WhoIs middleware (network is the auth boundary)
 - Every database query scoped to `user_id` from authenticated context — no cross-user access
+- Photo serving checks ownership via JOIN (photos -> catches -> user_id) — no cross-user photo access
 - Dev mode uses a hardcoded user (ID 1) — development only, never production
 - Config validation requires `TS_AUTHKEY` in production mode (fails fast at startup)
 
@@ -393,6 +407,14 @@ A single `tar` of the Docker volume or a scheduled `sqlite3 .backup` + `rsync` c
 - WAL mode with 5-second busy timeout
 - Indexes on all foreign key columns for efficient joins and filtering
 
+### Deployment Hardening
+- Docker container runs as non-root user (`fishscale:fishscale`)
+- Resource limits: 256MB RAM, 1 CPU via docker-compose
+- Log rotation: json-file driver, 10MB max, 3 files
+- `/healthz` endpoint for monitoring probes from the tailnet
+- Structured logging via `slog` with JSON handler and configurable log level
+- CI/CD: GitHub Actions with Go tests (race detector), golangci-lint, frontend build, svelte-check
+
 ### Caching
 - index.html: Cache-Control no-cache, no-store, must-revalidate (always fresh)
 - /assets/*: Cache-Control public, max-age=31536000, immutable (Vite content-hashed)
@@ -414,12 +436,10 @@ These are explicitly out of scope for v1 but the architecture is designed to acc
 Quick capture list for future work. Move items to "Future Considerations" once scoped, or into an iteration plan when ready to build.
 
 - [ ] Photo picker should open device photo album by default instead of camera, so users can upload pictures already taken (remove `capture="environment"` from file input, keep `accept="image/*"`)
-- [ ] Run security iteration plan 3
-- [ ] Determine whether CI/CD with GitHub Actions is needed
+- [x] ~~Run security iteration plan 3~~ (Iteration 3 completed: photo ownership, Docker hardening, CI/CD, Vitest, ESLint/Prettier, code splitting, Makefile, slog)
+- [x] ~~Determine whether CI/CD with GitHub Actions is needed~~ (Added in Iteration 3 Task 3: 3-job workflow with Go tests, golangci-lint, frontend build, svelte-check)
 - [ ] Catch log entries should be clickable/editable — tap to view full catch details, edit fields inline
 - [ ] Redo bottom nav icons (map, log, stats, settings) — current icons need improvement
 - [ ] Investigate species dropdown — still broken, may be overcomplicating it. Look for simpler alternatives or remove entirely for now
 - [ ] Fish-log page should remember user's location and auto-update without prompting
 - [ ] Investigate cancel button on fish-log page — may not be working
-- [ ]
-- [ ]
