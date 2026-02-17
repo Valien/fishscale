@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -24,23 +25,29 @@ func main() {
 
 	cfg := config.Load()
 	if err := cfg.Validate(); err != nil {
-		log.Fatalf("invalid configuration: %v", err)
+		slog.Error("invalid configuration", "error", err)
+		os.Exit(1)
 	}
+
+	logLevel := config.ParseLogLevel(cfg.LogLevel)
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: logLevel})))
 
 	db, err := database.Open(cfg.DBPath)
 	if err != nil {
-		log.Fatalf("failed to open database: %v", err)
+		slog.Error("failed to open database", "error", err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
 	store := storage.NewLocalStore(cfg.PhotoDir)
 
 	if cfg.DevMode {
-		log.Println("DEV MODE: listening on http://localhost:8080")
+		slog.Info("starting dev server", "addr", ":8080")
 		if err := runDevServer(ctx, ":8080"); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			slog.Error("server error", "error", err)
+			os.Exit(1)
 		}
-		log.Println("server stopped gracefully")
+		slog.Info("server stopped gracefully")
 	} else {
 		ts := &tsnet.Server{
 			Hostname: cfg.TSHostname,
@@ -51,7 +58,8 @@ func main() {
 
 		lc, err := ts.LocalClient()
 		if err != nil {
-			log.Fatalf("tsnet local client: %v", err)
+			slog.Error("tsnet local client failed", "error", err)
+			os.Exit(1)
 		}
 
 		authMW := middleware.TailscaleAuth(lc, db)
@@ -59,7 +67,8 @@ func main() {
 
 		ln, err := ts.ListenTLS("tcp", ":443")
 		if err != nil {
-			log.Fatalf("tsnet listen: %v", err)
+			slog.Error("tsnet listen failed", "error", err)
+			os.Exit(1)
 		}
 		defer ln.Close()
 
@@ -75,11 +84,12 @@ func main() {
 			_ = srv.Shutdown(shutdownCtx) //nolint:contextcheck // fresh context for graceful shutdown after parent cancellation
 		}()
 
-		log.Printf("fishscale available at https://%s.<tailnet>.ts.net", cfg.TSHostname)
+		slog.Info("fishscale available", "hostname", cfg.TSHostname)
 		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("server error: %v", err)
+			slog.Error("server error", "error", err)
+			os.Exit(1)
 		}
-		log.Println("server stopped gracefully")
+		slog.Info("server stopped gracefully")
 	}
 }
 

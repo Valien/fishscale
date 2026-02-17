@@ -2,7 +2,9 @@ package config
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
+	"strings"
 )
 
 type Config struct {
@@ -45,4 +47,20 @@ func getEnv(key, fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+// ParseLogLevel converts a string log level name to a slog.Level.
+// Recognized values: "debug", "info", "warn"/"warning", "error" (case-insensitive).
+// Unrecognized or empty values default to slog.LevelInfo.
+func ParseLogLevel(s string) slog.Level {
+	switch strings.ToLower(s) {
+	case "debug":
+		return slog.LevelDebug
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
 }

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log/slog"
 	"os"
 	"testing"
 )
@@ -40,5 +41,26 @@ func TestLoad_SetsDefaults(t *testing.T) {
 	}
 	if cfg.LogLevel != "info" {
 		t.Errorf("expected default log level 'info', got %q", cfg.LogLevel)
+	}
+}
+
+func TestParseLogLevel(t *testing.T) {
+	tests := []struct {
+		input string
+		want  slog.Level
+	}{
+		{"debug", slog.LevelDebug},
+		{"info", slog.LevelInfo},
+		{"warn", slog.LevelWarn},
+		{"error", slog.LevelError},
+		{"DEBUG", slog.LevelDebug},  // case insensitive
+		{"", slog.LevelInfo},         // default
+		{"invalid", slog.LevelInfo},  // fallback
+	}
+	for _, tt := range tests {
+		got := ParseLogLevel(tt.input)
+		if got != tt.want {
+			t.Errorf("ParseLogLevel(%q) = %v, want %v", tt.input, got, tt.want)
+		}
 	}
 }

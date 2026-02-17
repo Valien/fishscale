@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/jmoiron/sqlx"
@@ -15,7 +15,7 @@ func TailscaleAuth(lc *local.Client, db *sqlx.DB) func(http.Handler) http.Handle
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			whois, err := lc.WhoIs(r.Context(), r.RemoteAddr)
 			if err != nil {
-				log.Printf("WhoIs error: %v", err)
+				slog.Error("tailscale WhoIs failed", "error", err, "remote_addr", r.RemoteAddr)
 				http.Error(w, "unauthorized", http.StatusUnauthorized)
 				return
 			}
@@ -28,7 +28,7 @@ func TailscaleAuth(lc *local.Client, db *sqlx.DB) func(http.Handler) http.Handle
 				ON CONFLICT(tailscale_id) DO UPDATE SET display_name = ?`,
 				tailscaleID, displayName, displayName)
 			if err != nil {
-				log.Printf("upsert user error: %v", err)
+				slog.Error("upsert user failed", "error", err, "tailscale_id", tailscaleID)
 				http.Error(w, "internal error", http.StatusInternalServerError)
 				return
 			}
@@ -36,7 +36,7 @@ func TailscaleAuth(lc *local.Client, db *sqlx.DB) func(http.Handler) http.Handle
 			var user model.User
 			err = db.GetContext(r.Context(), &user, "SELECT * FROM users WHERE tailscale_id = ?", tailscaleID)
 			if err != nil {
-				log.Printf("get user error: %v", err)
+				slog.Error("get user failed", "error", err, "tailscale_id", tailscaleID)
 				http.Error(w, "internal error", http.StatusInternalServerError)
 				return
 			}

@@ -40,7 +40,7 @@
 
 | # | Category | Severity | Status |
 |---|----------|----------|--------|
-| 15 | Structured logging (slog) | LOW | Task 8 |
+| 15 | Structured logging (slog) | LOW | Task 8 ✅ |
 | 16 | Image resizing / thumbnails | LOW | Task 9 |
 | 17 | TypeScript strict mode | LOW | Task 10 |
 | 18 | Content-Security-Policy header | LOW | Task 11 |
