@@ -159,6 +159,16 @@
           pressure_mb: form.pressure_mb,
           humidity_pct: form.humidity_pct,
         });
+
+        // Add new photos if selected
+        if (photoFiles.length > 0) {
+          const formData = new FormData();
+          for (const file of photoFiles) {
+            formData.append('photos', file);
+          }
+          await api.catches.addPhotos(catchId, formData);
+        }
+
         await loadCatches();
         onDone();
       } else {
