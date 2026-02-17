@@ -18,5 +18,5 @@ export async function loadCatches() {
 
 export async function deleteCatch(id: number) {
   await api.catches.delete(id);
-  catches.update(list => list.filter(c => c.id !== id));
+  catches.update((list) => list.filter((c) => c.id !== id));
 }

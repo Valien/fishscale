@@ -18,10 +18,13 @@ export const api = {
     list: () => request<any[]>('/catches'),
     get: (id: number) => request<any>(`/catches/${id}`),
     create: (data: any) => request<any>('/catches', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number, data: any) => request<any>(`/catches/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    update: (id: number, data: any) =>
+      request<any>(`/catches/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) => request<void>(`/catches/${id}`, { method: 'DELETE' }),
     addPhotos: (id: number, formData: FormData) =>
-      fetch(`${BASE}/catches/${id}/photos`, { method: 'POST', body: formData }).then(r => r.json()),
+      fetch(`${BASE}/catches/${id}/photos`, { method: 'POST', body: formData }).then((r) =>
+        r.json(),
+      ),
   },
   species: {
     list: (q?: string) => request<any[]>(`/species${q ? `?q=${encodeURIComponent(q)}` : ''}`),
@@ -41,7 +44,8 @@ export const api = {
     list: () => request<any[]>('/trips'),
     get: (id: number) => request<any>(`/trips/${id}`),
     create: (data: any) => request<any>('/trips', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number, data: any) => request<any>(`/trips/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    update: (id: number, data: any) =>
+      request<any>(`/trips/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) => request<void>(`/trips/${id}`, { method: 'DELETE' }),
   },
   export: {

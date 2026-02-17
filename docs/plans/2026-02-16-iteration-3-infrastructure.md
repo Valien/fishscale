@@ -29,7 +29,7 @@
 | 6 | No Docker HEALTHCHECK | MEDIUM | Task 2 ✅ (skipped — see note) |
 | 7 | No resource limits in docker-compose | MEDIUM | Task 2 ✅ |
 | 8 | Single 1MB+ JS bundle, no code splitting | MEDIUM | Task 5 ✅ |
-| 9 | No ESLint/Prettier configuration | MEDIUM | Task 6 |
+| 9 | No ESLint/Prettier configuration | MEDIUM | Task 6 ✅ |
 | 10 | No LICENSE file (MIT mentioned in README only) | MEDIUM | Task 7 |
 | 11 | No Makefile for build automation | MEDIUM | Task 7 |
 | 12 | No golangci-lint configuration | MEDIUM | Task 3 ✅ |

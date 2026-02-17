@@ -115,11 +115,14 @@
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-    map.addControl(new maplibregl.GeolocateControl({
-      positionOptions: { enableHighAccuracy: true },
-      trackUserLocation: false,
-      showUserLocation: true,
-    }), 'top-right');
+    map.addControl(
+      new maplibregl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true },
+        trackUserLocation: false,
+        showUserLocation: true,
+      }),
+      'top-right',
+    );
 
     // Load catches after map is ready
     map.on('load', () => {

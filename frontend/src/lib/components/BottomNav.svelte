@@ -1,5 +1,8 @@
 <script lang="ts">
-  let { activePage = $bindable('map'), onNavigate }: { activePage: string; onNavigate: (page: string) => void } = $props();
+  let {
+    activePage = $bindable('map'),
+    onNavigate,
+  }: { activePage: string; onNavigate: (page: string) => void } = $props();
 
   const tabs = [
     { id: 'map', label: 'Map', icon: '🗺' },

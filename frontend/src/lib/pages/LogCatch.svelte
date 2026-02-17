@@ -19,7 +19,9 @@
   let photoInput: HTMLInputElement;
 
   let form = $state({
-    caught_at: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16),
+    caught_at: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16),
     latitude: null as number | null,
     longitude: null as number | null,
     location_name: '',
@@ -45,7 +47,9 @@
 
   // Load species list
   $effect(() => {
-    api.species.list().then(s => { speciesList = s; });
+    api.species.list().then((s) => {
+      speciesList = s;
+    });
   });
 
   // Filter species on query change, respecting species_filter setting
@@ -56,11 +60,13 @@
     }
     const filter = $settings.species_filter || 'all';
     if (speciesQuery.length > 0) {
-      filteredSpecies = speciesList.filter(s => {
-        const matchesQuery = s.name.toLowerCase().includes(speciesQuery.toLowerCase());
-        const matchesCategory = filter === 'all' || s.category === filter;
-        return matchesQuery && matchesCategory;
-      }).slice(0, 8);
+      filteredSpecies = speciesList
+        .filter((s) => {
+          const matchesQuery = s.name.toLowerCase().includes(speciesQuery.toLowerCase());
+          const matchesCategory = filter === 'all' || s.category === filter;
+          return matchesQuery && matchesCategory;
+        })
+        .slice(0, 8);
       showSpeciesDropdown = filteredSpecies.length > 0;
     } else {
       showSpeciesDropdown = false;
@@ -78,18 +84,21 @@
           form.longitude = pos.coords.longitude;
           // Fetch weather
           if (form.latitude && form.longitude) {
-            api.weather.get(form.latitude, form.longitude).then(w => {
-              form.air_temp_f = w.air_temp_f;
-              form.wind_mph = w.wind_mph;
-              form.wind_dir = w.wind_dir;
-              form.conditions = w.conditions;
-              form.pressure_mb = w.pressure_mb;
-              form.humidity_pct = w.humidity_pct;
-            }).catch(() => {});
+            api.weather
+              .get(form.latitude, form.longitude)
+              .then((w) => {
+                form.air_temp_f = w.air_temp_f;
+                form.wind_mph = w.wind_mph;
+                form.wind_dir = w.wind_dir;
+                form.conditions = w.conditions;
+                form.pressure_mb = w.pressure_mb;
+                form.humidity_pct = w.humidity_pct;
+              })
+              .catch(() => {});
           }
         },
         () => {},
-        { enableHighAccuracy: true }
+        { enableHighAccuracy: true },
       );
     }
   });
@@ -107,7 +116,9 @@
 
   function dismissDropdown() {
     // Delay so touchend/mousedown on a dropdown item fires before we hide it
-    dismissTimer = setTimeout(() => { showSpeciesDropdown = false; }, 200);
+    dismissTimer = setTimeout(() => {
+      showSpeciesDropdown = false;
+    }, 200);
   }
 
   function cancelDismiss() {
@@ -190,7 +201,11 @@
 
     <div class="form-group">
       <label>Location</label>
-      <input type="text" placeholder="e.g. Lake Fork, boat ramp cove" bind:value={form.location_name} />
+      <input
+        type="text"
+        placeholder="e.g. Lake Fork, boat ramp cove"
+        bind:value={form.location_name}
+      />
       {#if form.latitude}
         <small class="coords">{form.latitude.toFixed(4)}, {form.longitude?.toFixed(4)}</small>
       {:else}
@@ -204,7 +219,9 @@
         type="text"
         placeholder="Search species..."
         bind:value={speciesQuery}
-        onfocus={() => { if (speciesQuery.length > 0 && !justSelected) showSpeciesDropdown = true; }}
+        onfocus={() => {
+          if (speciesQuery.length > 0 && !justSelected) showSpeciesDropdown = true;
+        }}
         onblur={dismissDropdown}
       />
       {#if showSpeciesDropdown}
@@ -239,7 +256,11 @@
         onchange={handlePhotoSelect}
         style="display:none"
       />
-      <button class="btn btn-outline btn-block" type="button" onpointerup={() => photoInput.click()}>
+      <button
+        class="btn btn-outline btn-block"
+        type="button"
+        onpointerup={() => photoInput.click()}
+      >
         {photoFiles.length > 0 ? `${photoFiles.length} photo(s) selected` : 'Add Photo'}
       </button>
       {#if photoFiles.length > 0}
@@ -270,7 +291,7 @@
     {/if}
   </div>
 
-  <button class="btn btn-outline btn-block" onclick={() => showMoreDetail = !showMoreDetail}>
+  <button class="btn btn-outline btn-block" onclick={() => (showMoreDetail = !showMoreDetail)}>
     {showMoreDetail ? '- Less Detail' : '+ More Detail'}
   </button>
 
@@ -294,7 +315,11 @@
 
       <div class="form-group">
         <label>Line Info</label>
-        <input type="text" placeholder="e.g. 15lb braid + 12lb fluoro" bind:value={form.line_info} />
+        <input
+          type="text"
+          placeholder="e.g. 15lb braid + 12lb fluoro"
+          bind:value={form.line_info}
+        />
       </div>
 
       <div class="form-group">

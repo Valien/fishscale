@@ -10,21 +10,24 @@ describe('API client', () => {
   });
 
   it('constructs correct catch list URL', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify([]), { status: 200 })
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(JSON.stringify([]), { status: 200 }));
 
     const { api } = await import('../api');
     await api.catches.list();
 
-    expect(fetchSpy).toHaveBeenCalledWith('/api/v1/catches', expect.objectContaining({
-      headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
-    }));
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/v1/catches',
+      expect.objectContaining({
+        headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
+      }),
+    );
   });
 
   it('throws on non-OK response', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({ error: 'not found' }), { status: 404 })
+      new Response(JSON.stringify({ error: 'not found' }), { status: 404 }),
     );
 
     const { api } = await import('../api');
@@ -32,9 +35,7 @@ describe('API client', () => {
   });
 
   it('returns undefined for 204 responses', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response(null, { status: 204 })
-    );
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
 
     const { api } = await import('../api');
     const result = await api.catches.delete(1);

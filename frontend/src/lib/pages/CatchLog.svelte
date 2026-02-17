@@ -9,7 +9,7 @@
   });
 
   let filtered = $derived(
-    $catches.filter(c => {
+    $catches.filter((c) => {
       if (!search) return true;
       const q = search.toLowerCase();
       return (
@@ -17,7 +17,7 @@
         (c.location_name || '').toLowerCase().includes(q) ||
         (c.bait_or_lure || '').toLowerCase().includes(q)
       );
-    })
+    }),
   );
 
   async function handleDelete(id: number) {
@@ -71,7 +71,13 @@
             {#if c.air_temp_f}{c.air_temp_f.toFixed(0)}°F{/if}
           </div>
         {/if}
-        <button class="delete-btn" onclick={(e: MouseEvent) => { e.stopPropagation(); handleDelete(c.id); }}>Delete</button>
+        <button
+          class="delete-btn"
+          onclick={(e: MouseEvent) => {
+            e.stopPropagation();
+            handleDelete(c.id);
+          }}>Delete</button
+        >
       </div>
     {/each}
   {/if}

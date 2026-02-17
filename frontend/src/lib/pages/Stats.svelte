@@ -5,12 +5,15 @@
   let loading = $state(true);
 
   $effect(() => {
-    api.stats.get().then(s => {
-      stats = s;
-      loading = false;
-    }).catch(() => {
-      loading = false;
-    });
+    api.stats
+      .get()
+      .then((s) => {
+        stats = s;
+        loading = false;
+      })
+      .catch(() => {
+        loading = false;
+      });
   });
 </script>
 
@@ -63,7 +66,8 @@
             <span class="stat-row-label">{pb.species_name}</span>
             <span class="stat-row-value">
               {#if pb.max_weight_lb > 0}{pb.max_weight_lb.toFixed(1)} lb{/if}
-              {#if pb.max_length_in > 0} {pb.max_length_in.toFixed(1)}"{/if}
+              {#if pb.max_length_in > 0}
+                {pb.max_length_in.toFixed(1)}"{/if}
             </span>
           </div>
         {/each}
@@ -90,7 +94,10 @@
             <div class="chart-bar-group">
               <div
                 class="chart-bar"
-                style="height: {Math.max(4, (m.count / Math.max(...stats.monthly_counts.map((mc: any) => mc.count))) * 100)}%"
+                style="height: {Math.max(
+                  4,
+                  (m.count / Math.max(...stats.monthly_counts.map((mc: any) => mc.count))) * 100,
+                )}%"
               ></div>
               <div class="chart-label">{m.month.slice(5)}</div>
             </div>
@@ -101,7 +108,9 @@
 
     <div style="text-align: center; margin-top: 16px;">
       <a href={api.export.csv()} class="btn btn-outline" download>Export CSV</a>
-      <a href={api.export.json()} class="btn btn-outline" download style="margin-left: 8px;">Export JSON</a>
+      <a href={api.export.json()} class="btn btn-outline" download style="margin-left: 8px;"
+        >Export JSON</a
+      >
     </div>
   {/if}
 </div>

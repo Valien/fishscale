@@ -15,9 +15,13 @@
   });
 
   async function save() {
-    await updateSettings({ theme: currentTheme, units: currentUnits, species_filter: currentSpeciesFilter });
+    await updateSettings({
+      theme: currentTheme,
+      units: currentUnits,
+      species_filter: currentSpeciesFilter,
+    });
     saved = true;
-    setTimeout(() => saved = false, 2000);
+    setTimeout(() => (saved = false), 2000);
   }
 </script>
 
@@ -54,7 +58,7 @@
     <div class="radio-group">
       {#each [['all', 'All'], ['freshwater', 'Freshwater'], ['saltwater', 'Saltwater']] as [value, label]}
         <label class="radio-label">
-          <input type="radio" name="species_filter" value={value} bind:group={currentSpeciesFilter} />
+          <input type="radio" name="species_filter" {value} bind:group={currentSpeciesFilter} />
           <span>{label}</span>
         </label>
       {/each}
@@ -94,7 +98,7 @@
     font-size: 0.9rem;
   }
 
-  .radio-label input[type="radio"] {
+  .radio-label input[type='radio'] {
     width: auto;
   }
 

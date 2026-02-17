@@ -22,7 +22,7 @@
     activePage = 'log';
   }
 
-  function handleEditCatch(id: number) {
+  function handleEditCatch(_id: number) {
     activePage = 'log';
   }
 </script>

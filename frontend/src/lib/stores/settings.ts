@@ -7,7 +7,11 @@ interface Settings {
   species_filter: string;
 }
 
-export const settings = writable<Settings>({ theme: 'system', units: 'imperial', species_filter: 'all' });
+export const settings = writable<Settings>({
+  theme: 'system',
+  units: 'imperial',
+  species_filter: 'all',
+});
 
 export async function loadSettings() {
   try {
