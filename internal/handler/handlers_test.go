@@ -67,6 +67,9 @@ func setupFullRouter(t *testing.T) *chi.Mux {
 		r.Get("/export", export.Export)
 	})
 
+	// Serve photos with ownership check (mirrors server.go)
+	r.Get("/photos/*", photos.Serve)
+
 	return r
 }
 

@@ -1,6 +1,9 @@
 package storage
 
-import "io"
+import (
+	"io"
+	"net/http"
+)
 
 // Store defines the interface for photo storage.
 type Store interface {
@@ -12,4 +15,7 @@ type Store interface {
 
 	// Delete removes the file at the given relative path.
 	Delete(path string) error
+
+	// ServeFile serves the file at the given relative path over HTTP.
+	ServeFile(w http.ResponseWriter, r *http.Request, filename string)
 }

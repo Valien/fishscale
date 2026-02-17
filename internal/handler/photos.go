@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
@@ -124,6 +126,34 @@ func (h *PhotoHandler) Add(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonResponse(w, http.StatusCreated, photos)
+}
+
+func (h *PhotoHandler) Serve(w http.ResponseWriter, r *http.Request) {
+	user := middleware.UserFromContext(r.Context())
+	if user == nil {
+		jsonError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	// Extract filename from route wildcard
+	filename := chi.URLParam(r, "*")
+	if filename == "" || strings.Contains(filename, "..") || filepath.IsAbs(filename) {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Verify this photo belongs to a catch owned by this user
+	var exists int
+	err := h.db.GetContext(r.Context(), &exists,
+		`SELECT 1 FROM photos p
+		 JOIN catches c ON p.catch_id = c.id
+		 WHERE p.filename = ? AND c.user_id = ?`, filename, user.ID)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	h.store.ServeFile(w, r, filename)
 }
 
 func (h *PhotoHandler) Delete(w http.ResponseWriter, r *http.Request) {

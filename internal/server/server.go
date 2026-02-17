@@ -70,8 +70,8 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, store storage.Store, authMiddlew
 		r.Get("/export", export.Export)
 	})
 
-	// Serve photos from storage directory
-	r.Get("/photos/*", http.StripPrefix("/photos/", http.FileServer(http.Dir(cfg.PhotoDir))).ServeHTTP)
+	// Serve photos with ownership check
+	r.Get("/photos/*", photos.Serve)
 
 	// Serve embedded SPA frontend with fallback to index.html
 	distFS, err := fs.Sub(frontend.Assets, "dist")

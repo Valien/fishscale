@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -68,6 +69,11 @@ func (s *LocalStore) Get(path string) (io.ReadCloser, error) {
 func (s *LocalStore) Delete(path string) error {
 	fullPath := filepath.Join(s.BaseDir, path)
 	return os.Remove(fullPath)
+}
+
+// ServeFile serves the file at the given relative path over HTTP.
+func (s *LocalStore) ServeFile(w http.ResponseWriter, r *http.Request, filename string) {
+	http.ServeFile(w, r, filepath.Join(s.BaseDir, filename))
 }
 
 func randomHex(n int) (string, error) {

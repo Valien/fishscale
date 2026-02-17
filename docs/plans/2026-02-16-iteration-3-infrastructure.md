@@ -21,7 +21,7 @@
 
 | # | Category | Severity | Status |
 |---|----------|----------|--------|
-| 1 | Photo serving has no ownership check | MEDIUM | Task 1 |
+| 1 | Photo serving has no ownership check | MEDIUM | Task 1 ✅ |
 | 2 | Docker container runs as root | HIGH | Task 2 |
 | 3 | No CI/CD pipeline | HIGH | Task 3 |
 | 4 | No frontend testing framework | HIGH | Task 4 |
