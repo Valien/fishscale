@@ -30,14 +30,8 @@ func (h *CatchHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `SELECT c.*, COALESCE(s.name, '') as species_name
-		FROM catches c
-		LEFT JOIN species s ON c.species_id = s.id
-		WHERE c.user_id = ?
-		ORDER BY c.caught_at DESC`
-
 	var catches []model.Catch
-	if err := h.db.SelectContext(r.Context(), &catches, query, user.ID); err != nil {
+	if err := h.db.SelectContext(r.Context(), &catches, "SELECT * FROM catches WHERE user_id = ? ORDER BY caught_at DESC", user.ID); err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to query catches")
 		return
 	}
@@ -63,11 +57,7 @@ func (h *CatchHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var catch model.Catch
-	query := `SELECT c.*, COALESCE(s.name, '') as species_name
-		FROM catches c
-		LEFT JOIN species s ON c.species_id = s.id
-		WHERE c.id = ? AND c.user_id = ?`
-	if err := h.db.GetContext(r.Context(), &catch, query, id, user.ID); err != nil {
+	if err := h.db.GetContext(r.Context(), &catch, "SELECT * FROM catches WHERE id = ? AND user_id = ?", id, user.ID); err != nil {
 		jsonError(w, http.StatusNotFound, "catch not found")
 		return
 	}
@@ -107,12 +97,12 @@ func (h *CatchHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.db.ExecContext(r.Context(), `INSERT INTO catches (
-		user_id, trip_id, species_id, caught_at, latitude, longitude, location_name,
+		user_id, trip_id, species_name, caught_at, latitude, longitude, location_name,
 		length_in, weight_lb, kept, bait_or_lure, rod_setup, line_info, hook_size,
 		air_temp_f, wind_mph, wind_dir, conditions, pressure_mb, humidity_pct,
 		water_temp_f, water_clarity, notes
 	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		user.ID, req.TripID, req.SpeciesID, caughtAt, req.Latitude, req.Longitude, req.LocationName,
+		user.ID, req.TripID, req.SpeciesName, caughtAt, req.Latitude, req.Longitude, req.LocationName,
 		req.LengthIn, req.WeightLb, req.Kept, req.BaitOrLure, req.RodSetup, req.LineInfo, req.HookSize,
 		req.AirTempF, req.WindMph, req.WindDir, req.Conditions, req.PressureMb, req.HumidityPct,
 		req.WaterTempF, req.WaterClarity, req.Notes,
@@ -129,10 +119,7 @@ func (h *CatchHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var catch model.Catch
-	if err := h.db.GetContext(r.Context(), &catch, `SELECT c.*, COALESCE(s.name, '') as species_name
-		FROM catches c
-		LEFT JOIN species s ON c.species_id = s.id
-		WHERE c.id = ?`, id); err != nil {
+	if err := h.db.GetContext(r.Context(), &catch, "SELECT * FROM catches WHERE id = ?", id); err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to fetch created catch")
 		return
 	}
@@ -177,12 +164,12 @@ func (h *CatchHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = h.db.ExecContext(r.Context(), `UPDATE catches SET
-		trip_id=?, species_id=?, caught_at=?, latitude=?, longitude=?, location_name=?,
+		trip_id=?, species_name=?, caught_at=?, latitude=?, longitude=?, location_name=?,
 		length_in=?, weight_lb=?, kept=?, bait_or_lure=?, rod_setup=?, line_info=?, hook_size=?,
 		air_temp_f=?, wind_mph=?, wind_dir=?, conditions=?, pressure_mb=?, humidity_pct=?,
 		water_temp_f=?, water_clarity=?, notes=?, updated_at=CURRENT_TIMESTAMP
 		WHERE id=? AND user_id=?`,
-		req.TripID, req.SpeciesID, caughtAt, req.Latitude, req.Longitude, req.LocationName,
+		req.TripID, req.SpeciesName, caughtAt, req.Latitude, req.Longitude, req.LocationName,
 		req.LengthIn, req.WeightLb, req.Kept, req.BaitOrLure, req.RodSetup, req.LineInfo, req.HookSize,
 		req.AirTempF, req.WindMph, req.WindDir, req.Conditions, req.PressureMb, req.HumidityPct,
 		req.WaterTempF, req.WaterClarity, req.Notes,
@@ -194,10 +181,7 @@ func (h *CatchHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var catch model.Catch
-	if err := h.db.GetContext(r.Context(), &catch, `SELECT c.*, COALESCE(s.name, '') as species_name
-		FROM catches c
-		LEFT JOIN species s ON c.species_id = s.id
-		WHERE c.id = ?`, id); err != nil {
+	if err := h.db.GetContext(r.Context(), &catch, "SELECT * FROM catches WHERE id = ?", id); err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to fetch updated catch")
 		return
 	}

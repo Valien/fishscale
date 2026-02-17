@@ -49,13 +49,16 @@ func TestCreateCatch_RejectsInvalidCoordinates(t *testing.T) {
 	}
 }
 
-func TestCreateSpecies_RejectsOversizedName(t *testing.T) {
-	router := setupFullRouter(t)
+func TestCreateCatch_RejectsOversizedSpeciesName(t *testing.T) {
+	_, router := setupTestHandler(t)
 
 	huge := strings.Repeat("x", 201) // over 200 char limit
-	body, _ := json.Marshal(map[string]string{"name": huge, "category": "freshwater"})
+	body, _ := json.Marshal(map[string]interface{}{
+		"caught_at":    "2026-02-16T10:30:00Z",
+		"species_name": huge,
+	})
 
-	req := httptest.NewRequest("POST", "/api/v1/species", bytes.NewReader(body))
+	req := httptest.NewRequest("POST", "/api/v1/catches", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)

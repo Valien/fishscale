@@ -31,7 +31,7 @@ func (h *StatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.db.GetContext(r.Context(), &stats.TotalSpecies, "SELECT COUNT(DISTINCT species_id) FROM catches WHERE user_id = ? AND species_id IS NOT NULL", user.ID); err != nil {
+	if err := h.db.GetContext(r.Context(), &stats.TotalSpecies, "SELECT COUNT(DISTINCT species_name) FROM catches WHERE user_id = ? AND species_name != ''", user.ID); err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to query stats")
 		return
 	}
@@ -41,10 +41,10 @@ func (h *StatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.db.SelectContext(r.Context(), &stats.SpeciesCounts, `SELECT s.id as species_id, s.name as species_name, COUNT(*) as count
-		FROM catches c JOIN species s ON c.species_id = s.id
-		WHERE c.user_id = ?
-		GROUP BY s.id ORDER BY count DESC LIMIT 5`, user.ID); err != nil {
+	if err := h.db.SelectContext(r.Context(), &stats.SpeciesCounts, `SELECT species_name, COUNT(*) as count
+		FROM catches
+		WHERE user_id = ? AND species_name != ''
+		GROUP BY species_name ORDER BY count DESC LIMIT 5`, user.ID); err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to query stats")
 		return
 	}
@@ -52,12 +52,12 @@ func (h *StatsHandler) Get(w http.ResponseWriter, r *http.Request) {
 		stats.SpeciesCounts = []model.SpeciesCount{}
 	}
 
-	if err := h.db.SelectContext(r.Context(), &stats.PersonalBests, `SELECT s.id as species_id, s.name as species_name,
-		MAX(COALESCE(c.weight_lb, 0)) as max_weight_lb,
-		MAX(COALESCE(c.length_in, 0)) as max_length_in
-		FROM catches c JOIN species s ON c.species_id = s.id
-		WHERE c.user_id = ? AND (c.weight_lb IS NOT NULL OR c.length_in IS NOT NULL)
-		GROUP BY s.id ORDER BY max_weight_lb DESC LIMIT 10`, user.ID); err != nil {
+	if err := h.db.SelectContext(r.Context(), &stats.PersonalBests, `SELECT species_name,
+		MAX(COALESCE(weight_lb, 0)) as max_weight_lb,
+		MAX(COALESCE(length_in, 0)) as max_length_in
+		FROM catches
+		WHERE user_id = ? AND species_name != '' AND (weight_lb IS NOT NULL OR length_in IS NOT NULL)
+		GROUP BY species_name ORDER BY max_weight_lb DESC LIMIT 10`, user.ID); err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to query stats")
 		return
 	}

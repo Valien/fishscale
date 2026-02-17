@@ -16,7 +16,7 @@ func TestOpenAndMigrate(t *testing.T) {
 	}
 	defer db.Close()
 
-	tables := []string{"users", "trips", "species", "catches", "photos", "user_settings"}
+	tables := []string{"users", "trips", "catches", "photos", "user_settings"}
 	for _, table := range tables {
 		var name string
 		err := db.Get(&name, "SELECT name FROM sqlite_master WHERE type='table' AND name=?", table)
@@ -24,26 +24,6 @@ func TestOpenAndMigrate(t *testing.T) {
 			t.Errorf("table %q not found: %v", table, err)
 		}
 	}
-}
-
-func TestSeedSpecies(t *testing.T) {
-	dir := t.TempDir()
-	dbPath := filepath.Join(dir, "test.db")
-
-	db, err := Open(dbPath)
-	if err != nil {
-		t.Fatalf("Open failed: %v", err)
-	}
-	defer db.Close()
-
-	var count int
-	if err := db.Get(&count, "SELECT COUNT(*) FROM species"); err != nil {
-		t.Fatalf("count query failed: %v", err)
-	}
-	if count == 0 {
-		t.Error("expected species count > 0, got 0")
-	}
-	t.Logf("seeded %d species", count)
 }
 
 func TestConnectionPoolLimits(t *testing.T) {
@@ -71,7 +51,7 @@ func TestIndexesExist(t *testing.T) {
 	indexes := []string{
 		"idx_catches_user_id",
 		"idx_catches_caught_at",
-		"idx_catches_species_id",
+		"idx_catches_species_name",
 		"idx_catches_trip_id",
 		"idx_photos_catch_id",
 		"idx_trips_user_id",

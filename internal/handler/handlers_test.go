@@ -32,7 +32,7 @@ func setupFullRouter(t *testing.T) *chi.Mux {
 	store := storage.NewLocalStore(dir + "/photos")
 	catches := NewCatchHandler(db, store)
 	trips := NewTripHandler(db)
-	species := NewSpeciesHandler(db)
+	autocomplete := NewAutocompleteHandler(db)
 	photos := NewPhotoHandler(db, store)
 	settings := NewSettingsHandler(db)
 	stats := NewStatsHandler(db)
@@ -56,10 +56,7 @@ func setupFullRouter(t *testing.T) *chi.Mux {
 			r.Put("/{id}", trips.Update)
 			r.Delete("/{id}", trips.Delete)
 		})
-		r.Route("/species", func(r chi.Router) {
-			r.Get("/", species.List)
-			r.Post("/", species.Create)
-		})
+		r.Get("/autocomplete/species", autocomplete.Species)
 		r.Delete("/photos/{id}", photos.Delete)
 		r.Get("/settings", settings.Get)
 		r.Put("/settings", settings.Update)
@@ -112,51 +109,54 @@ func TestTrips(t *testing.T) {
 	}
 }
 
-func TestSpecies(t *testing.T) {
+func TestAutocompleteSpecies(t *testing.T) {
 	router := setupFullRouter(t)
 
-	// List species (should have seed data)
-	req := httptest.NewRequest("GET", "/api/v1/species", nil)
+	// Initially, autocomplete should return empty array (no catches yet)
+	req := httptest.NewRequest("GET", "/api/v1/autocomplete/species", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Fatalf("list species: got %d, want 200", rec.Code)
+		t.Fatalf("autocomplete species: got %d, want 200", rec.Code)
 	}
 
-	var species []model.Species
+	var species []string
 	_ = json.NewDecoder(rec.Body).Decode(&species)
-	if len(species) == 0 {
-		t.Error("expected seeded species")
+	if len(species) != 0 {
+		t.Errorf("expected empty species list for new user, got %d", len(species))
 	}
 
-	// Search species
-	req = httptest.NewRequest("GET", "/api/v1/species?q=Bass", nil)
+	// Create some catches with species names
+	for _, sp := range []string{"Largemouth Bass", "Largemouth Bass", "Bluegill"} {
+		body, _ := json.Marshal(map[string]any{
+			"caught_at":    "2026-02-16T10:30:00Z",
+			"species_name": sp,
+		})
+		req = httptest.NewRequest("POST", "/api/v1/catches", bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		rec = httptest.NewRecorder()
+		router.ServeHTTP(rec, req)
+		if rec.Code != http.StatusCreated {
+			t.Fatalf("create catch: got %d, want 201", rec.Code)
+		}
+	}
+
+	// Now autocomplete should return species sorted by frequency
+	req = httptest.NewRequest("GET", "/api/v1/autocomplete/species", nil)
 	rec = httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
 	if rec.Code != http.StatusOK {
-		t.Fatalf("search species: got %d, want 200", rec.Code)
+		t.Fatalf("autocomplete species: got %d, want 200", rec.Code)
 	}
 
-	var filtered []model.Species
-	_ = json.NewDecoder(rec.Body).Decode(&filtered)
-	if len(filtered) == 0 {
-		t.Error("expected at least one Bass species")
+	_ = json.NewDecoder(rec.Body).Decode(&species)
+	if len(species) != 2 {
+		t.Errorf("expected 2 species, got %d", len(species))
 	}
-	if len(filtered) >= len(species) {
-		t.Error("expected filtered results to be fewer than all species")
-	}
-
-	// Create custom species
-	body, _ := json.Marshal(map[string]string{"name": "Giant Trevally", "category": "saltwater"})
-	req = httptest.NewRequest("POST", "/api/v1/species", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	rec = httptest.NewRecorder()
-	router.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusCreated {
-		t.Fatalf("create species: got %d, want 201. body: %s", rec.Code, rec.Body.String())
+	if len(species) > 0 && species[0] != "Largemouth Bass" {
+		t.Errorf("expected 'Largemouth Bass' first (most frequent), got %q", species[0])
 	}
 }
 
@@ -204,8 +204,9 @@ func TestStats(t *testing.T) {
 
 	// Create a catch first
 	catchBody, _ := json.Marshal(model.CreateCatchRequest{
-		CaughtAt:   "2026-02-16T10:30:00Z",
-		BaitOrLure: "Texas Rig",
+		CaughtAt:    "2026-02-16T10:30:00Z",
+		SpeciesName: "Largemouth Bass",
+		BaitOrLure:  "Texas Rig",
 	})
 	req := httptest.NewRequest("POST", "/api/v1/catches", bytes.NewReader(catchBody))
 	req.Header.Set("Content-Type", "application/json")
@@ -225,6 +226,9 @@ func TestStats(t *testing.T) {
 	_ = json.NewDecoder(rec.Body).Decode(&stats)
 	if stats.TotalCatches != 1 {
 		t.Errorf("expected 1 total catch, got %d", stats.TotalCatches)
+	}
+	if stats.TotalSpecies != 1 {
+		t.Errorf("expected 1 total species, got %d", stats.TotalSpecies)
 	}
 }
 

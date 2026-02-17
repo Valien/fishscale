@@ -34,11 +34,7 @@ func (h *ExportHandler) Export(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var catches []model.Catch
-	err := h.db.SelectContext(r.Context(), &catches, `SELECT c.*, COALESCE(s.name, '') as species_name
-		FROM catches c
-		LEFT JOIN species s ON c.species_id = s.id
-		WHERE c.user_id = ?
-		ORDER BY c.caught_at DESC`, user.ID)
+	err := h.db.SelectContext(r.Context(), &catches, `SELECT * FROM catches WHERE user_id = ? ORDER BY caught_at DESC`, user.ID)
 	if err != nil {
 		jsonError(w, http.StatusInternalServerError, "failed to query catches")
 		return
