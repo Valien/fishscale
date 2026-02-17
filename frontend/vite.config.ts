@@ -9,4 +9,13 @@ export default defineConfig({
       '/photos': 'http://localhost:8080',
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          maplibre: ['maplibre-gl'],
+        },
+      },
+    },
+  },
 })
