@@ -47,6 +47,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, store storage.Store, authMiddlew
 	weather := handler.NewWeatherHandler()
 	stats := handler.NewStatsHandler(db)
 	export := handler.NewExportHandler(db)
+	user := handler.NewUserHandler()
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Route("/catches", func(r chi.Router) {
@@ -71,6 +72,7 @@ func NewRouter(cfg *config.Config, db *sqlx.DB, store storage.Store, authMiddlew
 		r.Get("/weather", weather.Get)
 		r.Get("/stats", stats.Get)
 		r.Get("/export", export.Export)
+		r.Get("/me", user.GetMe)
 	})
 
 	// Serve photos with ownership check
