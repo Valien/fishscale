@@ -17,7 +17,11 @@ RUN CGO_ENABLED=0 go build -o fishscale ./cmd/fishscale
 
 # Stage 3: Minimal runtime
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata && \
+    addgroup -S fishscale && adduser -S fishscale -G fishscale
 COPY --from=backend /app/fishscale /usr/local/bin/fishscale
+RUN mkdir -p /data/photos /data/tsnet-state && \
+    chown -R fishscale:fishscale /data
+USER fishscale
 VOLUME /data
 ENTRYPOINT ["fishscale"]

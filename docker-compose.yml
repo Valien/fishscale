@@ -3,6 +3,8 @@ services:
     build: .
     container_name: fishscale
     restart: unless-stopped
+    mem_limit: 256m
+    cpus: 1.0
     volumes:
       - fishscale-data:/data
       - /dev/net/tun:/dev/net/tun
@@ -15,6 +17,11 @@ services:
       - FISHSCALE_DB_PATH=/data/fish.db
       - FISHSCALE_PHOTO_DIR=/data/photos
       - FISHSCALE_LOG_LEVEL=${FISHSCALE_LOG_LEVEL:-info}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   fishscale-data:

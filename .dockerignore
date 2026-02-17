@@ -5,3 +5,6 @@ internal/frontend/dist
 /data
 .git
 .DS_Store
+docs/
+.claude/
+.worktrees/
