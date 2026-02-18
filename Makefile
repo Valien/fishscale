@@ -34,7 +34,7 @@ clean:
 docker:
 	docker build -t fishscale:latest .
 
-# Run all CI checks locally (equivalent to GitHub Actions)
+# Run all CI checks locally
 ci: test lint
 	@echo "Running frontend format check..."
 	cd frontend && npm run format:check

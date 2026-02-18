@@ -6,6 +6,16 @@ Project-level guidance for Claude Code working on Fishscale.
 
 Fishscale is a self-hosted fishing tracker. Go backend with embedded Svelte 5 frontend, SQLite database, Tailscale authentication. Single binary, Docker deployment.
 
+## Session Warmup
+
+On project warmup, check GitHub for open issues and add any new ones to the backlog:
+
+```bash
+gh issue list --repo Valien/fishscale --state open
+```
+
+Review against `docs/plans/todo.md` and surface any new issues that aren't already tracked.
+
 ## Critical Build Requirement
 
 **All `go` commands must be prefixed with `GOWORK=off`:**
@@ -191,7 +201,6 @@ perf: add SQLite pool limits and missing indexes
 docs: sync design doc with iteration 1 fixes
 chore: add .worktrees to gitignore
 test: add context cancellation tests for handlers
-ci: add GitHub Actions workflow
 ```
 
 Every commit that changes code must also update relevant docs in the same commit (design doc, iteration plan). End all commits with:
