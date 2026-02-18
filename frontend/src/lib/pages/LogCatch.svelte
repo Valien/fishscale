@@ -164,6 +164,10 @@
   }
 
   async function save() {
+    if (!form.species_name.trim()) {
+      error = 'Species is required';
+      return;
+    }
     saving = true;
     error = '';
     try {
