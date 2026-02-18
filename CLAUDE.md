@@ -187,6 +187,8 @@ Key rules:
 
 The app uses state-driven navigation (no router). `App.svelte` has an `activePage` state controlling which page shows. `CatchLog` has an internal `view` state (`'list' | 'detail' | 'edit'`) for sub-views. Cross-page navigation (e.g., map popup to catch detail) uses callback props and one-shot state that must be reset after consumption to prevent stale re-triggers on remount.
 
+**Svelte 5 effect pitfall:** When an `$effect` reads a prop and then calls a callback that writes back to that prop's source in the parent, it creates a reactivity cycle error. Always use `tick().then(...)` to defer the consumption/write outside the effect's synchronous execution. See `CatchLog.svelte` `viewCatchId` handling for the pattern.
+
 ### API Client
 
 `frontend/src/lib/api.ts` provides a typed wrapper around `fetch()`. All endpoints are under `/api/v1`.
