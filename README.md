@@ -2,6 +2,20 @@
 
 A self-hosted fishing tracker. Log catches, view them on a map, track personal bests, and get weather data — all from a single binary accessible over your Tailscale network.
 
+## Author's note (not AI written..rest of this README is with my corrections)
+
+So I haven't done any serious coding in a good number of years. And when you're not actively coding a lot you get really rusty (at least for me that's the case). But using Claude Code (for this project) has been really fun. I've spent more hours poring over it's code and notes than I've done in a long time.
+
+Yes it has flavor of AgenticAI coding, I'm ok with that. Hope you are as well. This is an OSS project to showcase fun AgenticAI coding using Tailscale Aperture on the backend and `tsnet` to make this app work for anyone with a Tailnet. :)
+
+No warranties or support is available for this project. So if something is broken, please file an Issue and I'll get Claude on it! :)  
+
+Why did I build this project? I love to fish and it's starting to get warmer (it's February at the time of this writing) so I'm itching to get back on the lake to fish. But all the current apps out there are full of great features but a lot are gated to make you pay. Blech. I just wanted something simple where I can take a pic, post a location, add a few notes, and boom. Go back to fishing.
+
+That's Fishscale :)
+
+Hope you enjoy it! 
+
 ## Features
 
 - **Catch logging** with GPS coordinates, species, bait/lure, weight, length, and photos
@@ -10,7 +24,7 @@ A self-hosted fishing tracker. Log catches, view them on a map, track personal b
 - **Statistics dashboard** with species breakdown, personal bests, top baits, and monthly trends
 - **Trip tracking** to group catches by outing
 - **Export** your data as JSON or CSV
-- **44 pre-loaded species** covering freshwater and saltwater, with a species filter setting
+- ~**44 pre-loaded species** covering freshwater and saltwater, with a species filter setting~ --> got rid of this as it was to complex for now. Will revisit later. Check out the `TODO.md` file for some other ideas I'm thinking through.
 - **Light/dark/system theme** with imperial or metric units
 - **Single binary** — Go backend with embedded Svelte frontend, no external services
 - **SQLite database** — zero configuration, WAL mode for performance
