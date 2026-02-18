@@ -4,10 +4,28 @@
   import LogCatch from './LogCatch.svelte';
   import { api } from '../api';
 
+  let {
+    onEdit,
+    viewCatchId = null,
+    onViewCatchConsumed,
+  }: {
+    onEdit?: (id: number) => void;
+    viewCatchId?: number | null;
+    onViewCatchConsumed?: () => void;
+  } = $props();
+
   let search = $state('');
 
   $effect(() => {
     loadCatches();
+  });
+
+  // Auto-open catch detail when navigated from map
+  $effect(() => {
+    if (viewCatchId) {
+      handleViewDetail(viewCatchId);
+      onViewCatchConsumed?.();
+    }
   });
 
   let filtered = $derived(
