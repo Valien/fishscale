@@ -9,6 +9,7 @@
   import { loadSettings } from './lib/stores/settings';
 
   let activePage = $state('map');
+  let viewCatchId = $state<number | null>(null);
 
   onMount(() => {
     loadSettings();
@@ -25,14 +26,19 @@
   function handleEditCatch(_id: number) {
     activePage = 'log';
   }
+
+  function handleViewCatch(id: number) {
+    viewCatchId = id;
+    activePage = 'log';
+  }
 </script>
 
 <div class="app">
   <div class:hidden={activePage !== 'map'}>
-    <MapView visible={activePage === 'map'} />
+    <MapView visible={activePage === 'map'} onViewCatch={handleViewCatch} />
   </div>
   {#if activePage === 'log'}
-    <CatchLog onEdit={handleEditCatch} />
+    <CatchLog onEdit={handleEditCatch} {viewCatchId} />
   {:else if activePage === 'add'}
     <LogCatch onDone={handleCatchDone} />
   {:else if activePage === 'stats'}
