@@ -45,6 +45,135 @@ docker compose up -d
 
 Fishscale will be available at `https://fishscale.<your-tailnet>.ts.net`.
 
+## Deployment
+
+### Prerequisites
+
+- Docker and Docker Compose
+- A [Tailscale](https://tailscale.com) account
+- A Tailscale auth key
+
+### Auth Key Setup
+
+Generate an auth key from the [Tailscale admin console](https://login.tailscale.com/admin/settings/keys):
+
+- **Reusable** — recommended so the container can restart without a new key.
+- **Ephemeral** — optional. The node will be automatically removed from your tailnet when the container stops. Good for testing.
+- **Tagged** — if you use [ACL tags](https://tailscale.com/kb/1068/acl-tags), tag the key (e.g., `tag:fishscale`) so it gets the right permissions.
+
+Auth keys expire after 90 days by default. If the container fails to start after that, generate a new key and update your `.env` file.
+
+### Production Setup
+
+1. Clone the repo and create a `.env` file:
+
+```bash
+git clone https://github.com/Valien/fishscale.git
+cd fishscale
+
+cat > .env <<'EOF'
+TS_AUTHKEY=tskey-auth-...
+TS_HOSTNAME=fishscale
+EOF
+```
+
+2. Start the container:
+
+```bash
+docker compose up -d
+```
+
+Fishscale will join your tailnet and be available at `https://fishscale.<your-tailnet>.ts.net`.
+
+The `docker-compose.yml` includes:
+
+- **Named volume** (`fishscale-data`) mounted at `/data` — stores the SQLite database, photos, and Tailscale state.
+- **`/dev/net/tun`** device + **`NET_ADMIN`** capability — required for Tailscale's userspace networking.
+- **Resource limits** — 256 MB memory, 1 CPU. Adjust in `docker-compose.yml` if needed.
+- **Log rotation** — JSON file driver, 10 MB max, 3 files.
+
+### Data Persistence
+
+All data lives in the `fishscale-data` Docker volume:
+
+```
+/data/
+  fish.db           SQLite database (catches, trips, settings)
+  photos/           Uploaded catch photos
+  tsnet-state/      Tailscale node identity and keys
+```
+
+**Back up your data:**
+
+```bash
+# Copy the database and photos out of the container
+docker cp fishscale:/data/fish.db ./fish.db.backup
+docker cp fishscale:/data/photos ./photos-backup
+
+# Or find the volume on disk
+docker volume inspect fishscale_fishscale-data --format '{{ .Mountpoint }}'
+```
+
+**Restore from backup:**
+
+```bash
+docker compose down
+docker cp ./fish.db.backup fishscale:/data/fish.db
+docker cp ./photos-backup/. fishscale:/data/photos/
+docker compose up -d
+```
+
+### Updating
+
+Pull the latest code and rebuild:
+
+```bash
+git pull
+docker compose up -d --build
+```
+
+Your data volume is preserved across rebuilds.
+
+### Logs & Troubleshooting
+
+```bash
+# Follow logs
+docker compose logs -f
+
+# Check container status
+docker compose ps
+```
+
+**Common issues:**
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Container exits immediately | Auth key expired or invalid | Generate a new key, update `.env`, restart |
+| `TUN device not found` | Missing `/dev/net/tun` mount | Ensure `docker-compose.yml` has the `/dev/net/tun:/dev/net/tun` volume and `NET_ADMIN` cap |
+| Not reachable on tailnet | Firewall or ACL blocking | Check [Tailscale admin](https://login.tailscale.com/admin/machines) for the node, verify ACLs |
+| `permission denied` on `/data` | Volume ownership mismatch | The container runs as user `fishscale` (non-root). Ensure the volume has correct permissions |
+
+### Testing Locally Without Tailscale
+
+To test Fishscale without joining a tailnet, use dev mode. This skips Tailscale entirely and serves over plain HTTP on port 8080:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e FISHSCALE_DEV_MODE=true \
+  -e FISHSCALE_DB_PATH=/data/fish.db \
+  -e FISHSCALE_PHOTO_DIR=/data/photos \
+  -v fishscale-data:/data \
+  $(docker compose build --quiet fishscale && echo fishscale-fishscale)
+```
+
+Or build and run directly without Docker:
+
+```bash
+FISHSCALE_DEV_MODE=true FISHSCALE_DB_PATH=./fish.db FISHSCALE_PHOTO_DIR=./photos go run ./cmd/fishscale
+```
+
+Open http://localhost:8080. Dev mode uses a fake user identity — no authentication is required.
+
 ## Development
 
 ### Prerequisites
