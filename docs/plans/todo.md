@@ -38,3 +38,4 @@ These are explicitly out of scope for v1 but the architecture is designed to acc
 - [x] ~~Investigate cancel button on fish-log page~~ (Confirmed working 2026-02-18: no issue found)
 - [x] ~~Make species required on log entry~~ (Completed 2026-02-18: frontend validation in save() rejects empty species, see species-required-and-map-detail-link.md)
 - [x] ~~Map popup link to catch detail~~ (Completed 2026-02-18: "View Details" link in map pin popups navigates to Log tab detail view, see species-required-and-map-detail-link.md)
+- [x] ~~Map-based location picker for logging catches~~ ([GH#1](https://github.com/Valien/fishscale/issues/1), Completed 2026-02-18: full-screen map overlay with tap-to-place pin in LogCatch, see 2026-02-18-map-location-picker-design.md)
