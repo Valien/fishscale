@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import { catches, loading, loadCatches, deleteCatch } from '../stores/catches';
   import CatchDetail from './CatchDetail.svelte';
   import LogCatch from './LogCatch.svelte';
@@ -23,8 +24,13 @@
   // Auto-open catch detail when navigated from map
   $effect(() => {
     if (viewCatchId) {
-      handleViewDetail(viewCatchId);
-      onViewCatchConsumed?.();
+      const id = viewCatchId;
+      // Defer consumption to avoid writing to a dependency of this effect
+      // during its execution (Svelte 5 reactivity cycle)
+      tick().then(() => {
+        handleViewDetail(id);
+        onViewCatchConsumed?.();
+      });
     }
   });
 
