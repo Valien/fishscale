@@ -115,7 +115,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    z-index: 100;
+    z-index: 200;
     display: flex;
     flex-direction: column;
     background: var(--bg);
@@ -152,7 +152,7 @@
   }
 
   .picker-footer {
-    padding: 12px 16px;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)) 16px;
     background: var(--card-bg);
     border-top: 1px solid var(--card-border);
   }
