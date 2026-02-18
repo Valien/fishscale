@@ -66,6 +66,8 @@ cd frontend && npm run check          # Svelte type check
 
 **IMPORTANT:** After every major feature fix/enhancement, run `make ci` or `make check` before manually testing the app. This catches issues early and ensures code quality.
 
+**Note:** `golangci-lint` is not installed locally. The `make lint` target will fail on the Go lint step. Frontend ESLint works fine. This does not block shipping.
+
 ## Project Structure
 
 ```
@@ -170,6 +172,10 @@ Key rules:
 ### Map Preservation
 
 `MapView.svelte` is always rendered (hidden via CSS `display: none`), not conditionally rendered with `{#if}`. This preserves map zoom/pan state across tab switches.
+
+### Navigation Pattern
+
+The app uses state-driven navigation (no router). `App.svelte` has an `activePage` state controlling which page shows. `CatchLog` has an internal `view` state (`'list' | 'detail' | 'edit'`) for sub-views. Cross-page navigation (e.g., map popup to catch detail) uses callback props and one-shot state that must be reset after consumption to prevent stale re-triggers on remount.
 
 ### API Client
 
