@@ -4,7 +4,8 @@
   import maplibregl from 'maplibre-gl';
   import 'maplibre-gl/dist/maplibre-gl.css';
 
-  let { visible = true, onViewCatch }: { visible?: boolean; onViewCatch?: (id: number) => void } = $props();
+  let { visible = true, onViewCatch }: { visible?: boolean; onViewCatch?: (id: number) => void } =
+    $props();
 
   let mapContainer: HTMLDivElement;
   let map: maplibregl.Map | null = null;
@@ -75,7 +76,8 @@
         const link = document.createElement('a');
         link.textContent = 'View Details \u2192';
         link.href = '#';
-        link.style.cssText = 'color:var(--primary, #0d6efd);text-decoration:none;font-size:0.85rem;font-weight:600;display:inline-block;margin-top:4px;';
+        link.style.cssText =
+          'color:var(--primary, #0d6efd);text-decoration:none;font-size:0.85rem;font-weight:600;display:inline-block;margin-top:4px;';
         link.addEventListener('click', (e) => {
           e.preventDefault();
           onViewCatch(c.id);

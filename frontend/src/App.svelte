@@ -38,7 +38,13 @@
     <MapView visible={activePage === 'map'} onViewCatch={handleViewCatch} />
   </div>
   {#if activePage === 'log'}
-    <CatchLog onEdit={handleEditCatch} {viewCatchId} onViewCatchConsumed={() => { viewCatchId = null; }} />
+    <CatchLog
+      onEdit={handleEditCatch}
+      {viewCatchId}
+      onViewCatchConsumed={() => {
+        viewCatchId = null;
+      }}
+    />
   {:else if activePage === 'add'}
     <LogCatch onDone={handleCatchDone} />
   {:else if activePage === 'stats'}

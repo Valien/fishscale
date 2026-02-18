@@ -89,123 +89,135 @@
   {#if !catchData}
     <div class="empty-state"><p>No catch data available</p></div>
   {:else}
-  <!-- Photo Gallery -->
-  {#if catchData.photos && catchData.photos.length > 0}
-    <div class="photo-gallery">
-      {#each catchData.photos as photo, i}
-        <button class="photo-thumb" onclick={() => viewPhoto(i)} type="button" aria-label="View photo">
-          <img src={photo.url} alt="Catch photo" />
-        </button>
-      {/each}
-      {#if catchData.photos.length > 1}
-        <p class="photo-count">({catchData.photos.length} photos)</p>
-      {/if}
-    </div>
-  {/if}
-
-  <!-- Header -->
-  <div class="card header-card">
-    <h2 class="species-name">{catchData.species_name || 'Unknown Species'}</h2>
-    <p class="catch-date">{new Date(catchData.caught_at).toLocaleString()}</p>
-    {#if catchData.kept}
-      <span class="chip chip-success">Kept</span>
-    {:else}
-      <span class="chip">Released</span>
+    <!-- Photo Gallery -->
+    {#if catchData.photos && catchData.photos.length > 0}
+      <div class="photo-gallery">
+        {#each catchData.photos as photo, i}
+          <button
+            class="photo-thumb"
+            onclick={() => viewPhoto(i)}
+            type="button"
+            aria-label="View photo"
+          >
+            <img src={photo.url} alt="Catch photo" />
+          </button>
+        {/each}
+        {#if catchData.photos.length > 1}
+          <p class="photo-count">({catchData.photos.length} photos)</p>
+        {/if}
+      </div>
     {/if}
-  </div>
 
-  <!-- Location Card -->
-  {#if catchData.location_name || catchData.latitude}
-    <div class="card">
-      <h3 class="card-label">📍 Location</h3>
-      {#if catchData.location_name}
-        <p>{catchData.location_name}</p>
-      {/if}
-      {#if catchData.latitude && catchData.longitude}
-        <p class="coords">{catchData.latitude.toFixed(4)}, {catchData.longitude.toFixed(4)}</p>
+    <!-- Header -->
+    <div class="card header-card">
+      <h2 class="species-name">{catchData.species_name || 'Unknown Species'}</h2>
+      <p class="catch-date">{new Date(catchData.caught_at).toLocaleString()}</p>
+      {#if catchData.kept}
+        <span class="chip chip-success">Kept</span>
+      {:else}
+        <span class="chip">Released</span>
       {/if}
     </div>
-  {/if}
 
-  <!-- Size Card -->
-  {#if catchData.length_in || catchData.weight_lb}
-    <div class="card">
-      <h3 class="card-label">📏 Size</h3>
-      {#if catchData.length_in}
-        <p>Length: {catchData.length_in} inches</p>
-      {/if}
-      {#if catchData.weight_lb}
-        <p>Weight: {catchData.weight_lb} lb</p>
-      {/if}
+    <!-- Location Card -->
+    {#if catchData.location_name || catchData.latitude}
+      <div class="card">
+        <h3 class="card-label">📍 Location</h3>
+        {#if catchData.location_name}
+          <p>{catchData.location_name}</p>
+        {/if}
+        {#if catchData.latitude && catchData.longitude}
+          <p class="coords">{catchData.latitude.toFixed(4)}, {catchData.longitude.toFixed(4)}</p>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Size Card -->
+    {#if catchData.length_in || catchData.weight_lb}
+      <div class="card">
+        <h3 class="card-label">📏 Size</h3>
+        {#if catchData.length_in}
+          <p>Length: {catchData.length_in} inches</p>
+        {/if}
+        {#if catchData.weight_lb}
+          <p>Weight: {catchData.weight_lb} lb</p>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Gear Card -->
+    {#if catchData.bait_or_lure || catchData.rod_setup || catchData.line_info || catchData.hook_size}
+      <div class="card">
+        <h3 class="card-label">🎣 Gear</h3>
+        {#if catchData.bait_or_lure}
+          <p><strong>Bait/Lure:</strong> {catchData.bait_or_lure}</p>
+        {/if}
+        {#if catchData.rod_setup}
+          <p><strong>Rod:</strong> {catchData.rod_setup}</p>
+        {/if}
+        {#if catchData.line_info}
+          <p><strong>Line:</strong> {catchData.line_info}</p>
+        {/if}
+        {#if catchData.hook_size}
+          <p><strong>Hook:</strong> {catchData.hook_size}</p>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Weather Card -->
+    {#if catchData.conditions || catchData.air_temp_f}
+      <div class="card">
+        <h3 class="card-label">☁️ Weather</h3>
+        {#if catchData.conditions}
+          <p>
+            {catchData.conditions}{#if catchData.air_temp_f}, {catchData.air_temp_f.toFixed(
+                0,
+              )}°F{/if}
+          </p>
+        {/if}
+        {#if catchData.wind_mph}
+          <p>Wind {catchData.wind_mph.toFixed(0)} mph {catchData.wind_dir || ''}</p>
+        {/if}
+        {#if catchData.pressure_mb || catchData.humidity_pct}
+          <p>
+            {#if catchData.pressure_mb}Pressure {catchData.pressure_mb.toFixed(0)} mb{/if}
+            {#if catchData.pressure_mb && catchData.humidity_pct},
+            {/if}
+            {#if catchData.humidity_pct}Humidity {catchData.humidity_pct.toFixed(0)}%{/if}
+          </p>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Water Card -->
+    {#if catchData.water_temp_f || catchData.water_clarity}
+      <div class="card">
+        <h3 class="card-label">💧 Water Conditions</h3>
+        {#if catchData.water_temp_f}
+          <p>Temperature: {catchData.water_temp_f.toFixed(0)}°F</p>
+        {/if}
+        {#if catchData.water_clarity}
+          <p>Clarity: {catchData.water_clarity}</p>
+        {/if}
+      </div>
+    {/if}
+
+    <!-- Notes Card -->
+    {#if catchData.notes}
+      <div class="card">
+        <h3 class="card-label">📝 Notes</h3>
+        <p class="notes-text">{catchData.notes}</p>
+      </div>
+    {/if}
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      <button class="btn btn-outline" onclick={onBack} type="button">Back</button>
+      <button class="btn btn-primary" onclick={onEdit} type="button">Edit</button>
     </div>
-  {/if}
-
-  <!-- Gear Card -->
-  {#if catchData.bait_or_lure || catchData.rod_setup || catchData.line_info || catchData.hook_size}
-    <div class="card">
-      <h3 class="card-label">🎣 Gear</h3>
-      {#if catchData.bait_or_lure}
-        <p><strong>Bait/Lure:</strong> {catchData.bait_or_lure}</p>
-      {/if}
-      {#if catchData.rod_setup}
-        <p><strong>Rod:</strong> {catchData.rod_setup}</p>
-      {/if}
-      {#if catchData.line_info}
-        <p><strong>Line:</strong> {catchData.line_info}</p>
-      {/if}
-      {#if catchData.hook_size}
-        <p><strong>Hook:</strong> {catchData.hook_size}</p>
-      {/if}
-    </div>
-  {/if}
-
-  <!-- Weather Card -->
-  {#if catchData.conditions || catchData.air_temp_f}
-    <div class="card">
-      <h3 class="card-label">☁️ Weather</h3>
-      {#if catchData.conditions}
-        <p>{catchData.conditions}{#if catchData.air_temp_f}, {catchData.air_temp_f.toFixed(0)}°F{/if}</p>
-      {/if}
-      {#if catchData.wind_mph}
-        <p>Wind {catchData.wind_mph.toFixed(0)} mph {catchData.wind_dir || ''}</p>
-      {/if}
-      {#if catchData.pressure_mb || catchData.humidity_pct}
-        <p>
-          {#if catchData.pressure_mb}Pressure {catchData.pressure_mb.toFixed(0)} mb{/if}
-          {#if catchData.pressure_mb && catchData.humidity_pct}, {/if}
-          {#if catchData.humidity_pct}Humidity {catchData.humidity_pct.toFixed(0)}%{/if}
-        </p>
-      {/if}
-    </div>
-  {/if}
-
-  <!-- Water Card -->
-  {#if catchData.water_temp_f || catchData.water_clarity}
-    <div class="card">
-      <h3 class="card-label">💧 Water Conditions</h3>
-      {#if catchData.water_temp_f}
-        <p>Temperature: {catchData.water_temp_f.toFixed(0)}°F</p>
-      {/if}
-      {#if catchData.water_clarity}
-        <p>Clarity: {catchData.water_clarity}</p>
-      {/if}
-    </div>
-  {/if}
-
-  <!-- Notes Card -->
-  {#if catchData.notes}
-    <div class="card">
-      <h3 class="card-label">📝 Notes</h3>
-      <p class="notes-text">{catchData.notes}</p>
-    </div>
-  {/if}
-
-  <!-- Action Buttons -->
-  <div class="action-buttons">
-    <button class="btn btn-outline" onclick={onBack} type="button">Back</button>
-    <button class="btn btn-primary" onclick={onEdit} type="button">Edit</button>
-  </div>
-  <button class="delete-link" onclick={handleDelete} type="button" aria-label="Delete this catch">Delete</button>
+    <button class="delete-link" onclick={handleDelete} type="button" aria-label="Delete this catch"
+      >Delete</button
+    >
   {/if}
 </div>
 

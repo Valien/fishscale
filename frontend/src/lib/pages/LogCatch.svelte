@@ -3,18 +3,18 @@
   import { loadCatches } from '../stores/catches';
 
   const FISHING_GREETINGS = [
-    "Hey {name}! What did you catch today?",
+    'Hey {name}! What did you catch today?',
     "Welcome back, {name}! Let's log that monster!",
-    "Nice to see you, {name}! Ready to brag?",
+    'Nice to see you, {name}! Ready to brag?',
     "What's biting, {name}?",
     "Reel 'em in, {name}!",
     "Another one, {name}? You're on fire!",
-    "Tell us about it, {name}!",
+    'Tell us about it, {name}!',
     "What'd you hook, {name}?",
-    "Time to record the catch, {name}!",
+    'Time to record the catch, {name}!',
     "Let's hear it, {name}! What's the story?",
-    "Back for more, {name}?",
-    "What treasure did you land, {name}?",
+    'Back for more, {name}?',
+    'What treasure did you land, {name}?',
   ];
 
   let {
@@ -102,35 +102,40 @@
   $effect(() => {
     if (mode === 'edit' && catchId) {
       loadingCatch = true;
-      api.catches.get(catchId).then((data) => {
-        form.caught_at = new Date(new Date(data.caught_at).getTime() - new Date().getTimezoneOffset() * 60000)
-          .toISOString()
-          .slice(0, 16);
-        form.latitude = data.latitude;
-        form.longitude = data.longitude;
-        form.location_name = data.location_name || '';
-        form.species_name = data.species_name || '';
-        form.bait_or_lure = data.bait_or_lure || '';
-        form.kept = data.kept || false;
-        form.length_in = data.length_in;
-        form.weight_lb = data.weight_lb;
-        form.rod_setup = data.rod_setup || '';
-        form.line_info = data.line_info || '';
-        form.hook_size = data.hook_size || '';
-        form.water_temp_f = data.water_temp_f;
-        form.water_clarity = data.water_clarity || '';
-        form.notes = data.notes || '';
-        form.air_temp_f = data.air_temp_f;
-        form.wind_mph = data.wind_mph;
-        form.wind_dir = data.wind_dir || '';
-        form.conditions = data.conditions || '';
-        form.pressure_mb = data.pressure_mb;
-        form.humidity_pct = data.humidity_pct;
-        loadingCatch = false;
-      }).catch((e: any) => {
-        error = e.message || 'Failed to load catch data';
-        loadingCatch = false;
-      });
+      api.catches
+        .get(catchId)
+        .then((data) => {
+          form.caught_at = new Date(
+            new Date(data.caught_at).getTime() - new Date().getTimezoneOffset() * 60000,
+          )
+            .toISOString()
+            .slice(0, 16);
+          form.latitude = data.latitude;
+          form.longitude = data.longitude;
+          form.location_name = data.location_name || '';
+          form.species_name = data.species_name || '';
+          form.bait_or_lure = data.bait_or_lure || '';
+          form.kept = data.kept || false;
+          form.length_in = data.length_in;
+          form.weight_lb = data.weight_lb;
+          form.rod_setup = data.rod_setup || '';
+          form.line_info = data.line_info || '';
+          form.hook_size = data.hook_size || '';
+          form.water_temp_f = data.water_temp_f;
+          form.water_clarity = data.water_clarity || '';
+          form.notes = data.notes || '';
+          form.air_temp_f = data.air_temp_f;
+          form.wind_mph = data.wind_mph;
+          form.wind_dir = data.wind_dir || '';
+          form.conditions = data.conditions || '';
+          form.pressure_mb = data.pressure_mb;
+          form.humidity_pct = data.humidity_pct;
+          loadingCatch = false;
+        })
+        .catch((e: any) => {
+          error = e.message || 'Failed to load catch data';
+          loadingCatch = false;
+        });
     }
   });
 
@@ -264,155 +269,155 @@
     <div class="empty-state"><p>Loading catch data...</p></div>
   {:else}
     <div class="card">
-    <div class="form-group">
-      <label>Date & Time</label>
-      <input type="datetime-local" bind:value={form.caught_at} />
-    </div>
-
-    <div class="form-group">
-      <label>Location</label>
-      <input
-        type="text"
-        placeholder="e.g. Lake Fork, boat ramp cove"
-        bind:value={form.location_name}
-      />
-      {#if form.latitude}
-        <small class="coords">{form.latitude.toFixed(4)}, {form.longitude?.toFixed(4)}</small>
-      {:else}
-        <small class="coords">Getting GPS location...</small>
-      {/if}
-    </div>
-
-    <div class="form-group">
-      <label>Species</label>
-      <input
-        type="text"
-        list="species-datalist"
-        placeholder="e.g. Largemouth Bass"
-        bind:value={form.species_name}
-      />
-      <datalist id="species-datalist">
-        {#each speciesSuggestions as species}
-          <option value={species}></option>
-        {/each}
-      </datalist>
-    </div>
-
-    <div class="form-group">
-      <label>Bait / Lure</label>
-      <input type="text" placeholder="e.g. Texas Rig, Senko" bind:value={form.bait_or_lure} />
-    </div>
-
-    <div class="form-group">
-      <label>Photo</label>
-      <input
-        type="file"
-        accept="image/*"
-        multiple
-        bind:this={photoInput}
-        onchange={handlePhotoSelect}
-        style="display:none"
-      />
-      <button
-        class="btn btn-outline btn-block"
-        type="button"
-        onpointerup={() => photoInput.click()}
-      >
-        {photoFiles.length > 0 ? `${photoFiles.length} photo(s) selected` : 'Add Photo'}
-      </button>
-      {#if photoFiles.length > 0}
-        <div class="photo-previews">
-          {#each photoFiles as file, i}
-            <div class="photo-thumb">
-              <img src={URL.createObjectURL(file)} alt="Preview" />
-              <button class="photo-remove" onpointerup={() => removePhoto(i)}>x</button>
-            </div>
-          {/each}
-        </div>
-      {/if}
-    </div>
-
-    <div class="form-group">
-      <label class="toggle">
-        <input type="checkbox" bind:checked={form.kept} />
-        <span>Kept</span>
-      </label>
-    </div>
-
-    {#if form.conditions}
-      <div class="weather-preview">
-        <span>{form.conditions}</span>
-        {#if form.air_temp_f}<span>{form.air_temp_f.toFixed(0)}°F</span>{/if}
-        {#if form.wind_mph}<span>Wind {form.wind_mph.toFixed(0)} mph {form.wind_dir}</span>{/if}
-      </div>
-    {/if}
-  </div>
-
-  <button class="btn btn-outline btn-block" onclick={() => (showMoreDetail = !showMoreDetail)}>
-    {showMoreDetail ? '- Less Detail' : '+ More Detail'}
-  </button>
-
-  {#if showMoreDetail}
-    <div class="card" style="margin-top: 12px;">
-      <div class="form-row">
-        <div class="form-group">
-          <label>Length (in)</label>
-          <input type="number" step="0.1" bind:value={form.length_in} />
-        </div>
-        <div class="form-group">
-          <label>Weight (lb)</label>
-          <input type="number" step="0.01" bind:value={form.weight_lb} />
-        </div>
+      <div class="form-group">
+        <label>Date & Time</label>
+        <input type="datetime-local" bind:value={form.caught_at} />
       </div>
 
       <div class="form-group">
-        <label>Rod Setup</label>
-        <input type="text" placeholder="e.g. 7' MH spinning" bind:value={form.rod_setup} />
-      </div>
-
-      <div class="form-group">
-        <label>Line Info</label>
+        <label>Location</label>
         <input
           type="text"
-          placeholder="e.g. 15lb braid + 12lb fluoro"
-          bind:value={form.line_info}
+          placeholder="e.g. Lake Fork, boat ramp cove"
+          bind:value={form.location_name}
         />
+        {#if form.latitude}
+          <small class="coords">{form.latitude.toFixed(4)}, {form.longitude?.toFixed(4)}</small>
+        {:else}
+          <small class="coords">Getting GPS location...</small>
+        {/if}
       </div>
 
       <div class="form-group">
-        <label>Hook Size</label>
-        <input type="text" placeholder="e.g. 3/0 EWG" bind:value={form.hook_size} />
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Water Temp (°F)</label>
-          <input type="number" step="0.1" bind:value={form.water_temp_f} />
-        </div>
-        <div class="form-group">
-          <label>Water Clarity</label>
-          <select bind:value={form.water_clarity}>
-            <option value="">--</option>
-            <option value="Clear">Clear</option>
-            <option value="Stained">Stained</option>
-            <option value="Muddy">Muddy</option>
-          </select>
-        </div>
+        <label>Species</label>
+        <input
+          type="text"
+          list="species-datalist"
+          placeholder="e.g. Largemouth Bass"
+          bind:value={form.species_name}
+        />
+        <datalist id="species-datalist">
+          {#each speciesSuggestions as species}
+            <option value={species}></option>
+          {/each}
+        </datalist>
       </div>
 
       <div class="form-group">
-        <label>Notes</label>
-        <textarea rows="3" bind:value={form.notes}></textarea>
+        <label>Bait / Lure</label>
+        <input type="text" placeholder="e.g. Texas Rig, Senko" bind:value={form.bait_or_lure} />
       </div>
+
+      <div class="form-group">
+        <label>Photo</label>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          bind:this={photoInput}
+          onchange={handlePhotoSelect}
+          style="display:none"
+        />
+        <button
+          class="btn btn-outline btn-block"
+          type="button"
+          onpointerup={() => photoInput.click()}
+        >
+          {photoFiles.length > 0 ? `${photoFiles.length} photo(s) selected` : 'Add Photo'}
+        </button>
+        {#if photoFiles.length > 0}
+          <div class="photo-previews">
+            {#each photoFiles as file, i}
+              <div class="photo-thumb">
+                <img src={URL.createObjectURL(file)} alt="Preview" />
+                <button class="photo-remove" onpointerup={() => removePhoto(i)}>x</button>
+              </div>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <div class="form-group">
+        <label class="toggle">
+          <input type="checkbox" bind:checked={form.kept} />
+          <span>Kept</span>
+        </label>
+      </div>
+
+      {#if form.conditions}
+        <div class="weather-preview">
+          <span>{form.conditions}</span>
+          {#if form.air_temp_f}<span>{form.air_temp_f.toFixed(0)}°F</span>{/if}
+          {#if form.wind_mph}<span>Wind {form.wind_mph.toFixed(0)} mph {form.wind_dir}</span>{/if}
+        </div>
+      {/if}
     </div>
-  {/if}
 
-  <div style="margin-top: 16px; display: flex; gap: 12px;">
-    <button class="btn btn-outline" style="flex:1;" onclick={onDone}>Cancel</button>
-    <button class="btn btn-primary" style="flex:2;" onclick={save} disabled={saving}>
-      {saving ? 'Saving...' : mode === 'edit' ? 'Update Catch' : 'Save Catch'}
+    <button class="btn btn-outline btn-block" onclick={() => (showMoreDetail = !showMoreDetail)}>
+      {showMoreDetail ? '- Less Detail' : '+ More Detail'}
     </button>
-  </div>
+
+    {#if showMoreDetail}
+      <div class="card" style="margin-top: 12px;">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Length (in)</label>
+            <input type="number" step="0.1" bind:value={form.length_in} />
+          </div>
+          <div class="form-group">
+            <label>Weight (lb)</label>
+            <input type="number" step="0.01" bind:value={form.weight_lb} />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Rod Setup</label>
+          <input type="text" placeholder="e.g. 7' MH spinning" bind:value={form.rod_setup} />
+        </div>
+
+        <div class="form-group">
+          <label>Line Info</label>
+          <input
+            type="text"
+            placeholder="e.g. 15lb braid + 12lb fluoro"
+            bind:value={form.line_info}
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Hook Size</label>
+          <input type="text" placeholder="e.g. 3/0 EWG" bind:value={form.hook_size} />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Water Temp (°F)</label>
+            <input type="number" step="0.1" bind:value={form.water_temp_f} />
+          </div>
+          <div class="form-group">
+            <label>Water Clarity</label>
+            <select bind:value={form.water_clarity}>
+              <option value="">--</option>
+              <option value="Clear">Clear</option>
+              <option value="Stained">Stained</option>
+              <option value="Muddy">Muddy</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Notes</label>
+          <textarea rows="3" bind:value={form.notes}></textarea>
+        </div>
+      </div>
+    {/if}
+
+    <div style="margin-top: 16px; display: flex; gap: 12px;">
+      <button class="btn btn-outline" style="flex:1;" onclick={onDone}>Cancel</button>
+      <button class="btn btn-primary" style="flex:2;" onclick={save} disabled={saving}>
+        {saving ? 'Saving...' : mode === 'edit' ? 'Update Catch' : 'Save Catch'}
+      </button>
+    </div>
   {/if}
 </div>
 
