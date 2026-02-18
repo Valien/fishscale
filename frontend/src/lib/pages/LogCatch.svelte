@@ -1,6 +1,7 @@
 <script lang="ts">
   import { api } from '../api';
   import { loadCatches } from '../stores/catches';
+  import LocationPicker from '../components/LocationPicker.svelte';
 
   const FISHING_GREETINGS = [
     'Hey {name}! What did you catch today?',
@@ -36,6 +37,7 @@
 
   let photoFiles = $state<File[]>([]);
   let photoInput: HTMLInputElement;
+  let showLocationPicker = $state(false);
 
   let form = $state({
     caught_at: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
@@ -281,11 +283,20 @@
           placeholder="e.g. Lake Fork, boat ramp cove"
           bind:value={form.location_name}
         />
-        {#if form.latitude}
-          <small class="coords">{form.latitude.toFixed(4)}, {form.longitude?.toFixed(4)}</small>
-        {:else}
-          <small class="coords">Getting GPS location...</small>
-        {/if}
+        <div class="location-row">
+          {#if form.latitude}
+            <small class="coords">{form.latitude.toFixed(4)}, {form.longitude?.toFixed(4)}</small>
+          {:else}
+            <small class="coords">Getting GPS location...</small>
+          {/if}
+          <button
+            class="pick-map-btn"
+            type="button"
+            onclick={() => (showLocationPicker = true)}
+          >
+            Pick on Map
+          </button>
+        </div>
       </div>
 
       <div class="form-group">
@@ -419,6 +430,19 @@
       </button>
     </div>
   {/if}
+
+  {#if showLocationPicker}
+    <LocationPicker
+      initialLat={form.latitude}
+      initialLng={form.longitude}
+      onSelect={(coords) => {
+        form.latitude = coords.latitude;
+        form.longitude = coords.longitude;
+        showLocationPicker = false;
+      }}
+      onCancel={() => (showLocationPicker = false)}
+    />
+  {/if}
 </div>
 
 <style>
@@ -484,5 +508,23 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
+  }
+
+  .location-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+
+  .pick-map-btn {
+    background: none;
+    border: none;
+    color: var(--primary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 2px 0;
+    white-space: nowrap;
   }
 </style>
