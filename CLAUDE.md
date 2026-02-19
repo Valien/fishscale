@@ -206,6 +206,8 @@ chore: add .worktrees to gitignore
 test: add context cancellation tests for handlers
 ```
 
+When a commit resolves a GitHub issue, include `Closes #N` in the commit body so GitHub auto-closes the issue on push.
+
 Every commit that changes code must also update relevant docs in the same commit (design doc, iteration plan). End all commits with:
 
 ```
