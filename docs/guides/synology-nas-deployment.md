@@ -36,7 +36,7 @@ Save this key somewhere safe. You'll need it in a moment.
 
 ---
 
-## 3. Set Up the TUN Device (One-Time)
+## 3. Set Up the TUN Device (One-Time) -- This step can be ignored if you have already run Tailscale-enabled containers on your Synology
 
 Tailscale needs a network tunnel device (`/dev/net/tun`) to work. Most Synology NAS devices don't have this enabled by default, so you need to create a small startup task.
 
@@ -110,7 +110,7 @@ services:
     container_name: fishscale
     restart: unless-stopped
     mem_limit: 256m
-    cpus: 1.0
+    #cpus: 1.0
     volumes:
       - fishscale-data:/data
       - /dev/net/tun:/dev/net/tun
