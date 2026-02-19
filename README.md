@@ -71,6 +71,8 @@ docker compose up -d
 
 Fishscale will be available at `https://fishscale.<your-tailnet>.ts.net`.
 
+Note: One the first time the volume and app are created it will take a little bit for it to come up due to the Let's Encrypt TLS cert generation happening in the background. Subsequent starts should resolve fine after this.
+
 ## Deployment
 
 ### Prerequisites
@@ -78,6 +80,7 @@ Fishscale will be available at `https://fishscale.<your-tailnet>.ts.net`.
 - Docker and Docker Compose
 - A [Tailscale](https://tailscale.com) account
 - A Tailscale auth key
+- HTTPS Enabled on your tailnet
 
 > **Synology NAS?** See the dedicated [Synology NAS Deployment Guide](docs/guides/synology-nas-deployment.md) for step-by-step instructions using Container Manager.
 
