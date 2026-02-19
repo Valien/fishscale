@@ -37,6 +37,7 @@ func setupFullRouter(t *testing.T) *chi.Mux {
 	settings := NewSettingsHandler(db)
 	stats := NewStatsHandler(db)
 	export := NewExportHandler(db)
+	user := NewUserHandler()
 
 	r := chi.NewRouter()
 	r.Use(middleware.DevAuth)
@@ -62,6 +63,7 @@ func setupFullRouter(t *testing.T) *chi.Mux {
 		r.Put("/settings", settings.Update)
 		r.Get("/stats", stats.Get)
 		r.Get("/export", export.Export)
+		r.Get("/me", user.GetMe)
 	})
 
 	// Serve photos with ownership check (mirrors server.go)
@@ -266,5 +268,43 @@ func TestExport(t *testing.T) {
 	}
 	if ct := rec.Header().Get("Content-Type"); ct != "text/csv" {
 		t.Errorf("expected content-type text/csv, got %q", ct)
+	}
+}
+
+func TestGetMe(t *testing.T) {
+	router := setupFullRouter(t)
+
+	req := httptest.NewRequest("GET", "/api/v1/me", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("get me: got %d, want 200. body: %s", rec.Code, rec.Body.String())
+	}
+
+	var resp map[string]any
+	_ = json.NewDecoder(rec.Body).Decode(&resp)
+
+	// Verify basic user fields
+	if resp["display_name"] != "Dev User" {
+		t.Errorf("expected display_name 'Dev User', got %q", resp["display_name"])
+	}
+	if resp["tailscale_id"] != "dev-user" {
+		t.Errorf("expected tailscale_id 'dev-user', got %q", resp["tailscale_id"])
+	}
+
+	// Verify tailscale_info is present
+	tsInfo, ok := resp["tailscale_info"].(map[string]any)
+	if !ok {
+		t.Fatal("expected tailscale_info object in response")
+	}
+	if tsInfo["login_name"] != "dev@localhost" {
+		t.Errorf("expected login_name 'dev@localhost', got %q", tsInfo["login_name"])
+	}
+	if tsInfo["display_name"] != "Dev User" {
+		t.Errorf("expected ts display_name 'Dev User', got %q", tsInfo["display_name"])
+	}
+	if tsInfo["node_name"] != "fishscale.dev.ts.net" {
+		t.Errorf("expected node_name 'fishscale.dev.ts.net', got %q", tsInfo["node_name"])
 	}
 }
