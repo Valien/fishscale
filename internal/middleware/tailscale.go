@@ -3,6 +3,7 @@ package middleware
 import (
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	"tailscale.com/client/local"
@@ -41,7 +42,20 @@ func TailscaleAuth(lc *local.Client, db *sqlx.DB) func(http.Handler) http.Handle
 				return
 			}
 
+			nodeName := ""
+			if whois.Node != nil {
+				nodeName = strings.TrimSuffix(whois.Node.Name, ".")
+			}
+			tsInfo := &model.TailscaleInfo{
+				LoginName:     whois.UserProfile.LoginName,
+				DisplayName:   whois.UserProfile.DisplayName,
+				TailscaleID:   tailscaleID,
+				NodeName:      nodeName,
+				ProfilePicURL: whois.UserProfile.ProfilePicURL,
+			}
+
 			ctx := WithUser(r.Context(), &user)
+			ctx = WithTailscaleInfo(ctx, tsInfo)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
