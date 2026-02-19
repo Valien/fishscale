@@ -67,6 +67,8 @@ Fishscale will be available at `https://fishscale.<your-tailnet>.ts.net`.
 - A [Tailscale](https://tailscale.com) account
 - A Tailscale auth key
 
+> **Synology NAS?** See the dedicated [Synology NAS Deployment Guide](docs/guides/synology-nas-deployment.md) for step-by-step instructions using Container Manager.
+
 ### Auth Key Setup
 
 Generate an auth key from the [Tailscale admin console](https://login.tailscale.com/admin/settings/keys):
