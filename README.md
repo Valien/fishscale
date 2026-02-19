@@ -42,6 +42,16 @@ Hope you enjoy it!
 
 ## Quick Start with Docker
 
+**Pre-built image** (no build required):
+
+```bash
+docker pull ghcr.io/valien/fishscale:latest
+```
+
+Or use the included `docker-compose.yml` to build from source.
+
+**Setup:**
+
 1. Generate a [Tailscale auth key](https://login.tailscale.com/admin/settings/keys) (reusable, with appropriate tags).
 
 2. Create a `.env` file:
@@ -278,11 +288,11 @@ DELETE /api/v1/trips/:id        Delete a trip
 ### Other
 
 ```
-GET    /api/v1/species          List species (?q= for search)
-POST   /api/v1/species          Add custom species
+GET    /api/v1/me               Get current authenticated user + Tailscale info
+GET    /api/v1/autocomplete/species  Autocomplete species names
 DELETE /api/v1/photos/:id       Delete a photo
 GET    /api/v1/settings         Get user settings
-PUT    /api/v1/settings         Update settings (theme, units, species_filter)
+PUT    /api/v1/settings         Update settings (theme, units)
 GET    /api/v1/weather          Get weather (?lat=&lon=)
 GET    /api/v1/stats            Get statistics
 GET    /api/v1/export           Export data (?format=json|csv)
