@@ -71,7 +71,7 @@ docker compose up -d
 
 Fishscale will be available at `https://fishscale.<your-tailnet>.ts.net`.
 
-Note: One the first time the volume and app are created it will take a little bit for it to come up due to the Let's Encrypt TLS cert generation happening in the background. Subsequent starts should resolve fine after this.
+Note: On the first time the volume and app are created, it will take a little bit for it to come up due to the Let's Encrypt TLS cert generation happening in the background. Subsequent starts should resolve fine after this.
 
 ## Deployment
 
@@ -93,6 +93,8 @@ Generate an auth key from the [Tailscale admin console](https://login.tailscale.
 - **Tagged** — if you use [ACL tags](https://tailscale.com/kb/1068/acl-tags), tag the key (e.g., `tag:fishscale`) so it gets the right permissions.
 
 Auth keys expire after 90 days by default. If the container fails to start after that, generate a new key and update your `.env` file.
+
+You can also set the device to not expire from the Tailscale admin console.
 
 ### Production Setup
 
