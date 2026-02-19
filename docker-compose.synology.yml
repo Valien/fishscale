@@ -1,0 +1,35 @@
+# Synology NAS deployment — uses pre-built image from GHCR.
+# See docs/guides/synology-nas-deployment.md for setup instructions.
+#
+# Usage:
+#   1. Copy this file to your Synology NAS
+#   2. Create a .env file next to it with: TS_AUTHKEY=tskey-auth-...
+#   3. In Container Manager → Project → Create, select this file
+#
+services:
+  fishscale:
+    image: ghcr.io/valien/fishscale:latest
+    container_name: fishscale
+    restart: unless-stopped
+    mem_limit: 256m
+    cpus: 1.0
+    volumes:
+      - fishscale-data:/data
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_HOSTNAME=${TS_HOSTNAME:-fishscale}
+      - TS_STATE_DIR=/data/tsnet-state
+      - FISHSCALE_DB_PATH=/data/fish.db
+      - FISHSCALE_PHOTO_DIR=/data/photos
+      - FISHSCALE_LOG_LEVEL=${FISHSCALE_LOG_LEVEL:-info}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  fishscale-data:
