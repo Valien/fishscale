@@ -59,7 +59,7 @@ GOWORK=off go test ./internal/handler/ -run TestListCatches -v
 
 ## Running CI Checks Locally
 
-All integration and testing is done locally, not via GitHub Actions:
+All integration and testing is done locally, not via GitHub Actions (GitHub Actions is only used for GHCR image publishing on version tags):
 
 ```bash
 # Run all CI checks (tests, lints, format check, type check, build)
@@ -98,7 +98,8 @@ frontend/               Svelte 5 + TypeScript + Vite
     pages/              LogCatch, MapView, CatchLog, Stats, Settings
     stores/             Svelte stores for catches and settings
     theme.css           CSS custom properties for theming
-docs/plans/             Design doc and iteration plans
+docs/plans/             Design docs and iteration plans
+docs/guides/            User-facing deployment guides (Synology, etc.)
 ```
 
 ## Go Conventions
@@ -211,12 +212,24 @@ Every commit that changes code must also update relevant docs in the same commit
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
+## Middleware Context Pattern
+
+The middleware uses Go context to pass both `User` (persisted) and `TailscaleInfo` (transient per-request) to handlers:
+
+```go
+user := middleware.UserFromContext(r.Context())
+tsInfo := middleware.TailscaleInfoFromContext(r.Context())
+```
+
+`DevAuth` middleware sets placeholder values for both in dev mode.
+
 ## Documentation
 
 - `docs/plans/2026-02-16-fishscale-design.md` — Architecture, data model, API design, UX decisions
 - `docs/plans/2026-02-16-iteration-1-bugfixes.md` — iOS Safari bugs, photo upload, species filter
 - `docs/plans/2026-02-16-iteration-2-security-hardening.md` — Security audit findings and fixes
 - `docs/plans/2026-02-16-iteration-3-infrastructure.md` — Docker, CI/CD, frontend quality
+- `docs/guides/synology-nas-deployment.md` — Synology NAS deployment guide (GUI + SSH paths)
 
 Update the design doc when changing architecture, data model, API surface, or security posture. Update the relevant iteration plan when completing tasks.
 
@@ -230,3 +243,5 @@ Update the design doc when changing architecture, data model, API surface, or se
 | Maps | MapLibre GL JS + OpenStreetMap |
 | Auth | Tailscale tsnet (WhoIs API) |
 | Weather | Open-Meteo API (no key required) |
+| Container | Docker, GHCR (`ghcr.io/valien/fishscale`) |
+| CI/CD | GitHub Actions (image publishing only), local `make ci` for tests |
