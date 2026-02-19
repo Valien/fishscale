@@ -2,6 +2,30 @@
   import { settings, updateSettings } from '../stores/settings';
   import { api } from '../api';
 
+  interface TailscaleInfo {
+    login_name: string;
+    display_name: string;
+    tailscale_id: string;
+    node_name: string;
+    profile_pic_url?: string;
+  }
+
+  interface MeResponse {
+    id: number;
+    tailscale_id: string;
+    display_name: string;
+    created_at: string;
+    tailscale_info?: TailscaleInfo;
+  }
+
+  let accountInfo: MeResponse | null = $state(null);
+
+  $effect(() => {
+    api.me.get().then((data: MeResponse) => {
+      accountInfo = data;
+    });
+  });
+
   let currentTheme = $state('system');
   let currentUnits = $state('imperial');
   let saved = $state(false);
@@ -24,6 +48,25 @@
 
 <div class="page">
   <h1 class="page-title">Settings</h1>
+
+  {#if accountInfo?.tailscale_info}
+    <div class="card">
+      <h2 class="section-title">Account</h2>
+      <div class="info-grid">
+        <span class="info-label">Display Name</span>
+        <span class="info-value">{accountInfo.tailscale_info.display_name}</span>
+
+        <span class="info-label">Login</span>
+        <span class="info-value">{accountInfo.tailscale_info.login_name}</span>
+
+        <span class="info-label">Device</span>
+        <span class="info-value">{accountInfo.tailscale_info.node_name.split('.')[0]}</span>
+
+        <span class="info-label">Tailnet URL</span>
+        <span class="info-value">{accountInfo.tailscale_info.node_name}</span>
+      </div>
+    </div>
+  {/if}
 
   <div class="card">
     <h2 class="section-title">Theme</h2>
@@ -84,5 +127,21 @@
 
   .radio-label input[type='radio'] {
     width: auto;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+    font-size: 0.9rem;
+  }
+
+  .info-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .info-value {
+    word-break: break-all;
   }
 </style>
