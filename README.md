@@ -2,7 +2,7 @@
 
 A self-hosted fishing tracker. Log catches, view them on a map, track personal bests, and get weather data — all from a single binary accessible over your Tailscale network.
 
-## Author's note (not AI written..rest of this README is with my corrections)
+## Author's note (not AI written..rest of this README is, with my corrections)
 
 So I haven't done any serious coding in a good number of years. And when you're not actively coding a lot you get really rusty (at least for me that's the case). But using Claude Code (for this project) has been really fun. I've spent more hours poring over it's code and notes than I've done in a long time.
 
@@ -14,7 +14,9 @@ Why did I build this project? I love to fish and it's starting to get warmer (it
 
 That's Fishscale :)
 
-Hope you enjoy it! 
+Hope you enjoy it and as we say in fishing: Tight lines! :D
+
+p.s. There are some guides and instructions (the Synology stuff) that may or may not be 100% accurate. I haven't fully tested every scenario. If you do run into issues, throw up a GH issue!
 
 ## Features
 
