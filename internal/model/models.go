@@ -9,6 +9,16 @@ type User struct {
 	CreatedAt   time.Time `db:"created_at" json:"created_at"`
 }
 
+// TailscaleInfo holds transient identity data from the Tailscale WhoIs response.
+// Not persisted — fresh on every request.
+type TailscaleInfo struct {
+	LoginName     string `json:"login_name"`
+	DisplayName   string `json:"display_name"`
+	TailscaleID   string `json:"tailscale_id"`
+	NodeName      string `json:"node_name"`
+	ProfilePicURL string `json:"profile_pic_url,omitempty"`
+}
+
 type Trip struct {
 	ID        int64      `db:"id" json:"id"`
 	UserID    int64      `db:"user_id" json:"user_id"`
