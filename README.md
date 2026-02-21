@@ -32,6 +32,18 @@ p.s. There are some guides and instructions (the Synology stuff) that may or may
 - **SQLite database** — zero configuration, WAL mode for performance
 - **Tailscale authentication** — accessible only on your tailnet, user identity via WhoIs
 
+## Screenshots! 
+
+<p align="center">
+<img src="./example-screenshots/ss-map.jpeg" width="50%" />
+</br></br>
+<img src="./example-screenshots/ss-log.jpeg" width="50%" />
+</br></br>
+<img src="./example-screenshots/ss-details.jpeg" width="50%" />
+</br></br>
+<img src="./example-screenshots/ss-stats.jpeg" width="50%" />
+</p>
+
 ## Tech Stack
 
 | Layer | Technology |
